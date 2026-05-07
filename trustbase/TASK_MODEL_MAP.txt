@@ -1,0 +1,494 @@
+================================================================================
+TRUSTBASE — CLAUDE MODEL TASK ALLOCATION + AGENT SWITCHING GUIDE
+================================================================================
+Goal: Use the cheapest model that can do the job correctly.
+Do NOT waste Opus 4.7 on tasks Sonnet 4.6 or Haiku 4.5 can handle.
+
+MODEL TIERS:
+  Haiku 4.5   — Fast, cheap. Simple well-defined tasks. Low reasoning load.
+  Sonnet 4.6  — Balanced. Your daily coding workhorse. Most tasks go here.
+  Opus 4.7    — Deepest reasoning. Expensive. Architecture, security, ambiguity.
+
+================================================================================
+PART A — HOW TO SWITCH BETWEEN MODELS (Practical Guide)
+================================================================================
+
+Claude Code is started from your terminal. The model is set when you OPEN
+a new session — you cannot change it mid-conversation.
+
+### Method 1: Start session with specific model
+Open a new terminal and type:
+
+  For Haiku 4.5 (documentation, simple tasks):
+  claude --model claude-haiku-4-5-20251001
+
+  For Sonnet 4.6 (default, daily coding):
+  claude
+
+  For Opus 4.7 (architecture, security):
+  claude --model claude-opus-4-7
+
+### Method 2: /fast toggle (while in a session)
+  Type /fast in Claude Code to switch to Opus 4.7 with faster output.
+  Type /fast again to switch back to Sonnet.
+
+### Method 3: Change your default model
+  Type /config in Claude Code → change "Model" setting
+  This persists across all future sessions.
+
+### Method 4: For a SPECIFIC TASK within a session (sub-agent)
+  When you ask me to do research, search code, or explore files,
+  I internally spawn a specialized sub-agent. You don't need to do anything —
+  just describe the task and I pick the right agent type.
+
+  Agent types available to me:
+  - Explore agent: code search, find files, grep for symbols (fast read-only)
+  - Plan agent: architecture and implementation planning
+  - general-purpose agent: research, web search, multi-step tasks
+  - claude-code-guide: questions about Claude Code CLI, MCP, API
+
+================================================================================
+PART B — HOW TO WRITE EFFECTIVE PROMPTS FOR EACH MODEL
+================================================================================
+
+The prompt format that works best differs by model:
+
+[ FOR HAIKU 4.5 — Keep it extremely specific ]
+  - Give it ONE file to work with
+  - Tell it EXACTLY what to add/change
+  - Do NOT give it the whole codebase
+  Template:
+  "Update [file path] to [specific change]. Here is the file: [paste file content]"
+
+  Example:
+  "Update PROGRESS_LOG.md to add an entry for today (2026-05-07) saying we
+  completed Phase 1 (config files). We created supabase.js, twilio.js, paystack.js.
+  Here is the current file: [paste PROGRESS_LOG.md content]"
+
+[ FOR SONNET 4.6 — Give context, be clear about the task ]
+  - Include CLAUDE.md rules relevant to the task
+  - Include the specific files that need to change
+  - Describe the goal, not just the steps
+  Template:
+  "I'm working on TrustBase (Nigerian scam-reporting app).
+  Context from CLAUDE.md: [paste relevant sections]
+  Task: Implement [specific thing] in [file].
+  It should follow these rules: [paste BACKEND_RULES.md relevant section]
+  Related files for context: [paste 1-2 related files]"
+
+  Example for Phase 5 (Models):
+  "I'm working on TrustBase backend (Node.js/Express/Supabase, CommonJS).
+  Task: Create backend/src/models/user.model.js with these functions:
+  createUser, findUserByPhone, findUserById, updateUser, incrementTrustPoints.
+  The Supabase client is at src/config/supabase.js.
+  Use the IMPLEMENTATION_PLAN.md Phase 5 specs exactly.
+  Rules: Use require(), never import. No business logic in models.
+  Throw errors if Supabase returns an error object."
+
+[ FOR OPUS 4.7 — Explain WHY and what the stakes are ]
+  - Give it the full relevant context (CLAUDE.md + specific files)
+  - Explain the security/architectural concern
+  - Ask for reasoning, not just code
+  Template:
+  "I'm building TrustBase (Nigerian scam-reporting app).
+  Here is the full context: [paste CLAUDE.md]
+  I need to [task]. The security concern here is [explain].
+  Key constraints: [list constraints].
+  Please analyze the approach and implement it with full security considerations."
+
+  Example for Paystack webhook:
+  "I'm building TrustBase backend. I need to implement the Paystack webhook
+  handler. The security concern is: anyone can POST to this endpoint pretending
+  to be Paystack. We must verify the HMAC-SHA512 signature before processing.
+  Getting this wrong means anyone can mark users as 'verified' without paying.
+  Constraints: must use raw body (not parsed), CommonJS, Express v5.
+  Here is the relevant code: [paste verification.service.js stub]
+  Implement it with full security."
+
+================================================================================
+PART C — TASK TO MODEL MAP
+================================================================================
+
+[ USE OPUS 4.7 ONLY FOR THESE ]
+────────────────────────────────
+  [ ] System architecture decisions (which service calls what)
+  [ ] Security review: JWT auth flow, Paystack webhook signature verification
+  [ ] Supabase Row Level Security policies — easy to get wrong
+  [ ] Risk score algorithm design (computeRiskScore in utils/risk.js)
+  [ ] Debugging production errors with no clear cause
+  [ ] Full PR security review
+  [ ] Any change to payment flows (Paystack integration)
+  [ ] CLAUDE.md architecture rule updates
+  [ ] Designing database schema relationships and constraints
+  [ ] /ultrareview or /security-review slash commands
+  [ ] Deciding on rate limiting thresholds (security implications)
+  [ ] AppError class design and error propagation strategy
+
+[ USE SONNET 4.6 FOR THESE — your daily default ]
+─────────────────────────────────────────────────
+  [ ] Phase 1: Creating config files (supabase.js, twilio.js, paystack.js)
+  [ ] Phase 3: Utils layer (validators, response helpers, risk scoring, OTP)
+  [ ] Phase 4: Middleware layer (auth.js, validate.js, rateLimit.js)
+  [ ] Phase 5: Model layer (user.model.js, report.model.js, etc.)
+  [ ] Phase 6: Service layer (auth.service.js, report.service.js, etc.)
+  [ ] Phase 7: Controller layer (all controller files)
+  [ ] Phase 8: Route files (authRoutes.js, reviewRoutes.js, etc.)
+  [ ] Phase 9: Socket.io setup
+  [ ] Phase 10: Frontend API integration (connecting React pages to backend)
+  [ ] Writing integration tests with Supertest
+  [ ] Setting up Husky + lint-staged + commitlint
+  [ ] GitHub Actions workflow YAML
+  [ ] ESLint + Prettier setup
+  [ ] Sentry setup (frontend + backend)
+  [ ] Debugging with a clear stack trace
+  [ ] Refactoring existing code
+  [ ] Multi-file feature changes
+
+[ USE HAIKU 4.5 FOR THESE — fast and cheap ]
+────────────────────────────────────────────
+  [ ] Updating PROGRESS_LOG.md after completing a phase
+  [ ] Adding entries to LEARN.md for a new concept introduced
+  [ ] Creating stub route files that follow an existing pattern
+  [ ] Writing simple Zod schemas (schema shape is fully defined)
+  [ ] Writing the generateOTP() and success/error helper functions
+  [ ] Single-file changes under 30 lines following an existing pattern
+  [ ] Writing or editing PR descriptions
+  [ ] Updating .env.example with new variables
+  [ ] Writing unit tests for pure functions (risk score, validators)
+  [ ] Updating package.json scripts
+  [ ] Explaining what a specific error message means
+  [ ] Generating seed data SQL for testing
+
+================================================================================
+PART D — PROJECT-SPECIFIC AGENT PROMPTS (Copy-Paste Ready)
+================================================================================
+Use these prompts verbatim. Fill in [brackets] before sending.
+
+────────────────────────────────────────────────────────────────────────────────
+PROMPT 1 — Phase 1: Config Layer [USE SONNET 4.6]
+────────────────────────────────────────────────────────────────────────────────
+I'm building TrustBase — a Nigerian scam-reporting platform backend.
+Tech: Node.js, Express v5, CommonJS (require/module.exports), Supabase.
+Task: Create three config files in backend/src/config/:
+
+1. supabase.js — initialize Supabase client using SUPABASE_URL and SUPABASE_KEY env vars
+2. twilio.js — initialize Twilio client, but gracefully return null if env vars missing
+3. paystack.js — create axios instance with base URL https://api.paystack.co and
+   Authorization: Bearer {PAYSTACK_SECRET} header
+
+Rules:
+- Use CommonJS only (require/module.exports)
+- No magic strings — SUPABASE_URL, SUPABASE_KEY, PAYSTACK_SECRET come from process.env
+- Add a startup check: if SUPABASE_URL is missing, throw an error with clear message
+
+Here is the constants file for reference: [paste backend/src/constants/index.js]
+
+────────────────────────────────────────────────────────────────────────────────
+PROMPT 2 — Phase 2: Database Schema [USE OPUS 4.7]
+────────────────────────────────────────────────────────────────────────────────
+I'm building TrustBase — a Nigerian scam-reporting platform.
+I need to run SQL in Supabase to create the database schema.
+
+Tables needed:
+- users: id (UUID), name, phone (unique), password_hash, is_verified, trust_points
+- reports: id, reporter_id (FK to users), phone, business_name, scam_type (enum),
+  description, amount_lost, anonymous, status (enum), risk_level (enum), created_at
+- report_upvotes: (report_id, user_id) composite PK
+- verifications: id, user_id (FK), type (enum), status (enum), paystack_ref (unique),
+  amount_paid, created_at
+
+The scam_type enum must match these EXACT strings:
+'Online Marketplace Scam', 'Fake Product / Non-delivery', 'POS Fraud',
+'Investment / Ponzi', 'Romantic Scam', 'Loan / Finance Fraud',
+'Job / Recruitment Scam', 'Other'
+
+Also create a PostgreSQL function: increment_trust_points(user_id UUID, points INTEGER)
+And create indexes on: reports.phone, reports.status, reports.created_at, users.phone
+
+Write production-quality SQL with proper constraints, CHECK constraints, and comments.
+Tell me what indexes to enable and what RLS policies to set.
+
+────────────────────────────────────────────────────────────────────────────────
+PROMPT 3 — Phase 3: Utils Layer [USE SONNET 4.6]
+────────────────────────────────────────────────────────────────────────────────
+I'm building TrustBase backend (Node.js, CommonJS, Zod v4).
+Task: Create four utility files in backend/src/utils/:
+
+1. response.js — success(res, data, code=200) and error(res, message, code=400) helpers
+2. validators.js — Zod schemas: signupSchema, loginSchema, reportSchema, verificationSchema
+   Nigerian phone regex: /^(0[7-9][0-1]\d{8})$/
+   Scam types enum from SCAM_TYPES constant
+3. risk.js — computeRiskScore(reports) returns { score: 0-100, level, tags[] }
+   Use HIGH_RISK_SCAM_TYPES and MEDIUM_RISK_SCAM_TYPES from constants
+4. otp.js — generateOTP() returns 6-digit string, sendOTP(phone, otp) uses Twilio
+
+Here are my constants for reference: [paste constants/index.js]
+Here is AppError for reference: [paste errors/AppError.js]
+
+Rules: CommonJS only, use constants (no magic numbers), pure functions in risk.js
+
+────────────────────────────────────────────────────────────────────────────────
+PROMPT 4 — Phase 4: Middleware [USE SONNET 4.6]
+────────────────────────────────────────────────────────────────────────────────
+I'm building TrustBase backend (Node.js, Express v5, CommonJS).
+The security.js middleware already exists (helmet, CORS, HPP, requestId).
+Task: Create three additional middleware files in backend/src/middlewares/:
+
+1. auth.js — verifyToken and optionalAuth using jsonwebtoken
+   - verifyToken: extract Bearer token, jwt.verify with JWT_SECRET, attach to req.user
+   - optionalAuth: same but sets req.user = null if no token, never blocks
+   - Use AppError unauthorized() for 401 errors
+2. validate.js — validate(schema) factory using Zod safeParse
+   - Stores result in req.validatedBody (not req.body)
+   - Returns 422 with Zod error messages
+3. rateLimit.js — three limiters using express-rate-limit
+   - authRateLimit, searchRateLimit, reportRateLimit from RATE_LIMITS constant
+
+Here are the constants: [paste constants/index.js]
+Here is AppError: [paste errors/AppError.js]
+Rules: CommonJS, use RATE_LIMITS constant (no magic numbers), JWT_SECRET from process.env
+
+────────────────────────────────────────────────────────────────────────────────
+PROMPT 5 — Phase 5: Models [USE SONNET 4.6]
+────────────────────────────────────────────────────────────────────────────────
+I'm building TrustBase backend (Node.js, CommonJS, Supabase).
+Task: Create four model files in backend/src/models/:
+
+1. user.model.js — createUser, findUserByPhone, findUserById, updateUser, incrementTrustPoints
+2. report.model.js — createReport, getReportsByPhone, getRecentReports, upvoteReport, getUpvoteCount
+3. verification.model.js — createVerification, getVerificationByUserId, updateVerificationStatus, getVerificationByPaystackRef
+4. company.model.js — searchEntities, getVerifiedUsers, getVerifiedUserById
+
+Rules:
+- Import supabase from '../config/supabase'
+- ONLY database queries here — no business logic
+- Throw Supabase error objects so services can handle them
+- Never return password_hash — always select specific columns
+- Supabase error code 'PGRST116' = "not found" → return null (not an error)
+
+Here is the supabase config (create it if missing): [paste config/supabase.js content]
+
+────────────────────────────────────────────────────────────────────────────────
+PROMPT 6 — Phase 6: Services [USE SONNET 4.6 for auth+report, OPUS 4.7 for verification]
+────────────────────────────────────────────────────────────────────────────────
+I'm building TrustBase backend (Node.js, CommonJS, bcrypt, JWT).
+Task: Create auth.service.js and report.service.js in backend/src/services/
+
+auth.service.js:
+- signup({ name, phone, password }): check duplicate phone → hash password → createUser → generateToken
+- login({ phone, password }): findUserByPhone → bcrypt.compare → generateToken
+- generateToken(userId): jwt.sign({ sub: userId }, JWT_SECRET, { expiresIn: JWT_EXPIRY })
+
+report.service.js:
+- submitReport(data, userId): determine risk_level from scam type → createReport → incrementTrustPoints if userId → return report
+- searchEntity(query): getReportsByPhone(query) → computeRiskScore(reports) → return { reports, riskAssessment }
+
+Use: AppError (conflict for duplicate phone, unauthorized for bad password),
+     constants (BCRYPT_SALT_ROUNDS, JWT_EXPIRY, VERIFICATION_PRICES_KOBO),
+     models from models/
+
+Here are related files: [paste models, constants, AppError]
+
+────────────────────────────────────────────────────────────────────────────────
+PROMPT 7 — Phase 6: Verification Service (Paystack) [USE OPUS 4.7]
+────────────────────────────────────────────────────────────────────────────────
+I'm building TrustBase backend. I need the verification.service.js for Paystack payments.
+
+Security requirement: The Paystack webhook MUST verify the HMAC-SHA512 signature
+using the raw body string (not parsed JSON). Wrong implementation = anyone can
+mark users as verified without paying.
+
+Payment flow:
+1. initiateVerification(userId, type): call Paystack /transaction/initialize → store ref → return payment URL
+2. handlePaystackWebhook(rawBody, signature): verify HMAC → parse event → on 'charge.success' → update verification status
+3. approveVerification(id, userId, type): update verification + set user.is_verified = true
+
+Prices: individual = 200000 kobo, business = 500000 kobo
+Reference format: `TB-${userId.slice(0,8)}-${Date.now()}`
+Paystack base URL: https://api.paystack.co
+Secret key: process.env.PAYSTACK_SECRET
+
+Here are related files: [paste verification.model.js, user.model.js, constants/index.js, AppError.js]
+
+────────────────────────────────────────────────────────────────────────────────
+PROMPT 8 — Phase 7+8: Controllers + Routes [USE SONNET 4.6]
+────────────────────────────────────────────────────────────────────────────────
+I'm building TrustBase backend. Task: Create all controller and route files.
+
+Controllers needed (in backend/src/controllers/):
+- auth.controller.js: signup(req,res,next), login(req,res,next)
+- user.controller.js: getProfile, updateProfile
+- review.controller.js: submitReport, getReports, searchEntity, upvote
+- verification.controller.js: initiate, webhook, getStatus
+
+Route files needed (in backend/src/routes/):
+- authRoutes.js, userRoutes.js, reviewRoutes.js, companyRoutes.js, verifyRoutes.js
+
+Rules:
+- Controllers: thin layer only (read req → call one service → send response)
+- Use req.validatedBody (not req.body) after validate() middleware
+- Use success() and error() from utils/response.js
+- Apply verifyToken/optionalAuth, validate(), rateLimit middlewares in routes
+
+Here are the services and middleware already built: [paste service files + middleware files]
+Here are the schemas: [paste validators.js]
+
+────────────────────────────────────────────────────────────────────────────────
+PROMPT 9 — Phase 10: Frontend Integration [USE SONNET 4.6]
+────────────────────────────────────────────────────────────────────────────────
+I'm connecting TrustBase React frontend (React 19, Vite, JSX) to the Node.js backend.
+Backend is running at http://localhost:3000 (VITE_API_URL env var).
+
+Task: Create src/lib/api.js (fetch wrapper with JWT) and update Login.jsx + Signup.jsx
+to make real API calls instead of the current setTimeout mock.
+
+api.js requirements:
+- GET/POST/PUT methods
+- Attach Authorization: Bearer token from localStorage key 'trustbase_token'
+- Handle 401: clear token + redirect to /login
+- Throw errors so calling code can catch them
+
+Login.jsx change: replace the setTimeout mock with real POST /api/auth/login
+Signup.jsx change: replace the setTimeout mock with real POST /api/auth/signup
+App.jsx change: add useEffect to restore auth from localStorage on mount
+
+Here are the current Login.jsx and Signup.jsx: [paste files]
+Here is the current App.jsx: [paste file]
+
+────────────────────────────────────────────────────────────────────────────────
+PROMPT 10 — Documentation Update After a Phase [USE HAIKU 4.5]
+────────────────────────────────────────────────────────────────────────────────
+Update PROGRESS_LOG.md to document that Phase [X] is complete.
+
+What was done: [describe what you just built]
+Files created: [list files]
+Anything unusual or worth noting: [optional]
+Next steps: [the next phase]
+
+Here is the current PROGRESS_LOG.md: [paste file]
+
+────────────────────────────────────────────────────────────────────────────────
+PROMPT 11 — Security Review of Auth Flow [USE OPUS 4.7]
+────────────────────────────────────────────────────────────────────────────────
+Review the TrustBase authentication implementation for security vulnerabilities.
+
+Specifically check:
+1. JWT token generation and verification (auth.middleware.js, auth.service.js)
+2. Password hashing (bcrypt usage in auth.service.js)
+3. Whether password_hash ever leaks into API responses
+4. Rate limiting on login endpoint (brute force protection)
+5. JWT payload content (should only have sub: userId, no sensitive data)
+6. Token expiry handling
+
+Here is the full auth implementation:
+[paste auth.middleware.js]
+[paste auth.service.js]
+[paste auth.controller.js]
+[paste authRoutes.js]
+
+Return a security verdict for each point and any fixes needed.
+
+================================================================================
+PART E — TOKEN SAVING STRATEGIES
+================================================================================
+
+These techniques reduce how many tokens you use per Claude session —
+which saves money and keeps the context cleaner.
+
+1. USE /compact REGULARLY
+   Type /compact in Claude Code to summarize the conversation so far.
+   Do this after completing each phase before starting the next one.
+   Reduces context size by ~70% without losing important info.
+
+2. START FRESH SESSIONS FOR UNRELATED TASKS
+   Don't do "implement Phase 5 AND set up Husky AND fix a UI bug" in one session.
+   Each session has a focused goal. Start a new claude session for each phase.
+
+3. USE HAIKU FOR SINGLE-FILE TASKS
+   Opening a Haiku session uses ~1/10th the cost of Opus.
+   For documentation updates, small fixes, and boilerplate — always use Haiku.
+
+4. GIVE ONLY RELEVANT FILES
+   When asking Claude to implement auth.service.js, don't paste the entire codebase.
+   Paste only: auth.service.js (if it exists), models/user.model.js, constants/index.js.
+
+5. REFERENCE IMPLEMENTATION PLAN SECTIONS
+   Instead of describing what a function should do, paste the relevant phase
+   section from IMPLEMENTATION_PLAN.md. It's already written precisely.
+
+6. USE /clear TO RESET WITHOUT RESTARTING
+   Type /clear to wipe conversation history but keep the session open.
+   Useful when switching to a completely different task.
+
+7. TELL CLAUDE THE SCOPE UPFRONT
+   "Only implement Phase 1 config files. Do NOT start Phase 2."
+   This prevents Claude from "being helpful" and doing more than asked,
+   which uses extra tokens.
+
+8. READ FILES YOURSELF FIRST
+   "Here is the current file:" [paste it] is cheaper than asking Claude
+   to read it — Claude doesn't need to use a tool call.
+
+================================================================================
+PART F — WHICH AGENT TYPE FOR WHICH TASK
+================================================================================
+
+In Claude Code, I (Claude) can internally use specialized sub-agents
+for specific types of work. You trigger these by how you phrase your request.
+
+EXPLORE AGENT (fast code search, read-only)
+  Used for: "Where is X defined?", "Which files use Y?", "Find all routes"
+  Trigger phrases: "find", "where is", "search for", "which files", "locate"
+  Example: "Find all files that import the Supabase client"
+  Example: "Which pages in the frontend have a phone input field?"
+  Cost: Very cheap — fast read-only, no writing
+
+PLAN AGENT (architecture and design)
+  Used for: Designing how to implement something before writing code
+  Trigger phrases: "plan", "design", "how should I", "what's the best approach"
+  Example: "Plan how to implement the Socket.io real-time notification system"
+  Example: "Design the verification payment flow architecture"
+  Cost: Medium — deep thinking but no code execution
+
+GENERAL-PURPOSE AGENT (research, web search, complex multi-step)
+  Used for: Questions that need web research, comparing options, complex analysis
+  Trigger phrases: "research", "compare", "investigate", "look up"
+  Example: "Research what the best Nigerian payment gateway alternatives to Paystack are"
+  Example: "Look up the Paystack webhook documentation and summarize the event types"
+  Cost: Medium
+
+CLAUDE-CODE-GUIDE AGENT (Claude Code features and API questions)
+  Used for: Questions about Claude Code CLI itself, MCP setup, hooks, API usage
+  Trigger phrases: "how do I configure", "how does claude code", "mcp setup", "hooks"
+  Example: "How do I configure a pre-commit hook in Claude Code settings?"
+  Example: "What MCP servers are available for Supabase?"
+  Cost: Medium
+
+DIRECT (no sub-agent — I handle it in the main conversation)
+  Used for: Actually writing code, editing files, fixing bugs
+  Most coding work goes here — Explore/Plan/General are for research only.
+
+================================================================================
+PART G — TrustBase Phase-by-Phase Agent Cheat Sheet
+================================================================================
+
+Phase | Task                              | Model    | Agent Type
+------|-----------------------------------|----------|-------------
+1     | Create config files               | Sonnet   | Direct (coding)
+2     | Write DB schema SQL               | Opus     | Direct (security/schema)
+3     | Utils (validators, risk, otp)     | Sonnet   | Direct (coding)
+4     | Middlewares (auth, validate)      | Sonnet   | Direct (coding)
+5     | Models (DB queries)               | Sonnet   | Direct (coding)
+6a    | Auth + Report services            | Sonnet   | Direct (coding)
+6b    | Verification service (Paystack)   | Opus     | Direct (security+payments)
+7     | Controllers                       | Sonnet   | Direct (coding)
+8     | Route files                       | Sonnet   | Direct (coding)
+9     | Socket.io                         | Sonnet   | Direct (coding)
+10    | Frontend integration              | Sonnet   | Direct (coding)
+11    | Tests                             | Sonnet   | Direct (coding)
+12    | Pipeline setup (Husky/ESLint)     | Sonnet   | Direct (coding)
+Any   | Security review                   | Opus     | Direct
+Any   | Update PROGRESS_LOG.md            | Haiku    | Direct
+Any   | Find where something is in code   | Any      | Explore agent
+Any   | Research external service docs    | Any      | General-purpose agent
+================================================================================
