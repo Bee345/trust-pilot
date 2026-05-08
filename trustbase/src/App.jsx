@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 
@@ -27,6 +27,11 @@ const NO_NAV_PATHS = ['/signup', '/login'];
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('trustbase_token');
+    if (token) setIsAuthenticated(true);
+  }, []);
 
   return (
     <Router>

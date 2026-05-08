@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, ShieldCheck, ArrowRight, Phone, User, Lock } from 'lucide-react';
+import { api } from '../lib/api';
 
 export default function Signup({ onLogin }) {
   const navigate = useNavigate();
@@ -8,14 +9,23 @@ export default function Signup({ onLogin }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState('');
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      onLogin();
+    setError('');
+    try {
+      const data = await api.post('/api/auth/signup', formData);
+      localStorage.setItem('trustbase_token', data.token);
+      localStorage.setItem('trustbase_user', JSON.stringify(data.user));
+      onLogin(data.user);
       navigate('/home');
-    }, 1200);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -88,6 +98,15 @@ export default function Signup({ onLogin }) {
       }}>
         <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1A2B3C', marginBottom: '6px' }}>Create Account</h2>
         <p style={{ fontSize: '13px', color: '#8896A5', marginBottom: '24px' }}>It's free and takes less than a minute</p>
+
+        {error && (
+          <div style={{
+            background: '#FFF5F5', border: '1px solid #FFC5C5', borderRadius: '10px',
+            padding: '12px 14px', fontSize: '13px', color: '#C62828', marginBottom: '8px',
+          }}>
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Name */}

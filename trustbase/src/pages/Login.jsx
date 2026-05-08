@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, ShieldCheck, ArrowRight, Phone, Lock, ChevronLeft } from 'lucide-react';
+import { api } from '../lib/api';
 
 export default function Login({ onLogin }) {
   const navigate = useNavigate();
@@ -8,14 +9,23 @@ export default function Login({ onLogin }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState('');
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      onLogin();
+    setError('');
+    try {
+      const data = await api.post('/api/auth/login', formData);
+      localStorage.setItem('trustbase_token', data.token);
+      localStorage.setItem('trustbase_user', JSON.stringify(data.user));
+      onLogin(data.user);
       navigate('/home');
-    }, 1200);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -81,6 +91,15 @@ export default function Login({ onLogin }) {
       }}>
         <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1A2B3C', marginBottom: '6px' }}>Sign In</h2>
         <p style={{ fontSize: '13px', color: '#8896A5', marginBottom: '24px' }}>Enter your credentials to continue</p>
+
+        {error && (
+          <div style={{
+            background: '#FFF5F5', border: '1px solid #FFC5C5', borderRadius: '10px',
+            padding: '12px 14px', fontSize: '13px', color: '#C62828', marginBottom: '8px',
+          }}>
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
@@ -162,27 +181,6 @@ export default function Login({ onLogin }) {
             )}
           </button>
         </form>
-
-        {/* Divider */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '20px 0' }}>
-          <div style={{ flex: 1, height: '1px', background: '#ECEFF1' }}/>
-          <span style={{ fontSize: '12px', color: '#B0BEC5', fontWeight: '500' }}>OR</span>
-          <div style={{ flex: 1, height: '1px', background: '#ECEFF1' }}/>
-        </div>
-
-        {/* Quick Demo Access */}
-        <button
-          type="button"
-          onClick={() => { setLoading(true); setTimeout(() => { onLogin(); navigate('/home'); }, 800); }}
-          style={{
-            width: '100%', padding: '14px', borderRadius: '12px',
-            background: '#F8F9FA', border: '1.5px solid #ECEFF1',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-            cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#1A2B3C',
-          }}
-        >
-          <span>🚀</span> Continue as Demo User
-        </button>
 
         <div style={{ textAlign: 'center', marginTop: '24px' }}>
           <p style={{ fontSize: '14px', color: '#8896A5' }}>

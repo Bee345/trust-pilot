@@ -111,6 +111,7 @@ PART C — TASK TO MODEL MAP
 
 [ USE OPUS 4.7 ONLY FOR THESE ]
 ────────────────────────────────
+  BACKEND:
   [ ] System architecture decisions (which service calls what)
   [ ] Security review: JWT auth flow, Paystack webhook signature verification
   [ ] Supabase Row Level Security policies — easy to get wrong
@@ -124,8 +125,17 @@ PART C — TASK TO MODEL MAP
   [ ] Deciding on rate limiting thresholds (security implications)
   [ ] AppError class design and error propagation strategy
 
+  FRONTEND:
+  [ ] Deciding frontend state management architecture (useState vs Zustand vs Redux)
+  [ ] Security review of JWT storage and auth flow in React
+  [ ] Designing the overall frontend component + page architecture
+
+  → START: claude --model claude-opus-4-7 in a NEW terminal
+  → WARNING: Do NOT switch to Opus mid-session — open fresh so context is clean.
+
 [ USE SONNET 4.6 FOR THESE — your daily default ]
 ─────────────────────────────────────────────────
+  BACKEND:
   [ ] Phase 1: Creating config files (supabase.js, twilio.js, paystack.js)
   [ ] Phase 3: Utils layer (validators, response helpers, risk scoring, OTP)
   [ ] Phase 4: Middleware layer (auth.js, validate.js, rateLimit.js)
@@ -134,18 +144,35 @@ PART C — TASK TO MODEL MAP
   [ ] Phase 7: Controller layer (all controller files)
   [ ] Phase 8: Route files (authRoutes.js, reviewRoutes.js, etc.)
   [ ] Phase 9: Socket.io setup
-  [ ] Phase 10: Frontend API integration (connecting React pages to backend)
   [ ] Writing integration tests with Supertest
   [ ] Setting up Husky + lint-staged + commitlint
   [ ] GitHub Actions workflow YAML
   [ ] ESLint + Prettier setup
-  [ ] Sentry setup (frontend + backend)
+  [ ] Sentry setup (backend)
   [ ] Debugging with a clear stack trace
   [ ] Refactoring existing code
   [ ] Multi-file feature changes
 
+  FRONTEND:
+  [ ] Phase 10a: Create src/lib/api.js (fetch wrapper with JWT attach + 401 handling)
+  [ ] Phase 10b: Update Login.jsx — replace setTimeout mock with real POST /api/auth/login
+  [ ] Phase 10c: Update Signup.jsx — replace setTimeout mock with real POST /api/auth/signup
+  [ ] Phase 10d: Update App.jsx — useEffect to restore auth from localStorage on mount
+  [ ] Phase 10e: Build Search page — search by phone, show risk score + reports
+  [ ] Phase 10f: Build Report Submission page — form → POST /api/reviews
+  [ ] Phase 10g: Build Profile/Dashboard page — GET /api/users/me, show trust points
+  [ ] Phase 10h: Add protected route guard (redirect to /login if no token)
+  [ ] Phase 10i: Socket.io client — real-time notifications for new reports
+  [ ] Phase 10j: Sentry setup (frontend error tracking)
+  [ ] Phase 11: Frontend component tests (React Testing Library)
+
+  → START: claude in a NEW terminal (Sonnet is the default)
+  → TIP: Use the feature/frontend worktree for all frontend tasks.
+         Use the feature/backend worktree for all backend tasks.
+
 [ USE HAIKU 4.5 FOR THESE — fast and cheap ]
 ────────────────────────────────────────────
+  BACKEND:
   [ ] Updating PROGRESS_LOG.md after completing a phase
   [ ] Adding entries to LEARN.md for a new concept introduced
   [ ] Creating stub route files that follow an existing pattern
@@ -158,6 +185,15 @@ PART C — TASK TO MODEL MAP
   [ ] Updating package.json scripts
   [ ] Explaining what a specific error message means
   [ ] Generating seed data SQL for testing
+
+  FRONTEND:
+  [ ] Updating inline styles to match the design system across pages
+  [ ] Adding loading spinners and error messages to existing components
+  [ ] Simple form field additions to an existing page (under 30 lines)
+  [ ] Writing or editing PR descriptions after completing a frontend phase
+  [ ] Adding a new React Router route entry to App.jsx
+
+  → START: claude --model claude-haiku-4-5-20251001 in a NEW terminal
 
 ================================================================================
 PART D — PROJECT-SPECIFIC AGENT PROMPTS (Copy-Paste Ready)
@@ -356,6 +392,68 @@ Here are the current Login.jsx and Signup.jsx: [paste files]
 Here is the current App.jsx: [paste file]
 
 ────────────────────────────────────────────────────────────────────────────────
+PROMPT 9b — Phase 10a: api.js Fetch Wrapper [USE SONNET 4.6 — feature/frontend worktree]
+────────────────────────────────────────────────────────────────────────────────
+I'm building TrustBase (Nigerian scam-reporting app). Frontend: React 19, Vite, JSX.
+Backend runs at http://localhost:3000 (env var: VITE_API_URL).
+
+Task: Create src/lib/api.js — a fetch wrapper with these requirements:
+- get(path), post(path, body), put(path, body) methods
+- Reads JWT from localStorage key 'trustbase_token'
+- Attaches Authorization: Bearer <token> header if token exists
+- On 401 response: clear localStorage token + redirect to /login
+- Throws error with response JSON so callers can catch it
+
+Here are the current files I need you to also update:
+[paste src/pages/Login.jsx]
+[paste src/pages/Signup.jsx]
+[paste src/App.jsx]
+
+For Login.jsx: replace the setTimeout mock with real POST /api/auth/login using api.post()
+For Signup.jsx: replace the setTimeout mock with real POST /api/auth/signup using api.post()
+For App.jsx: add useEffect that reads 'trustbase_token' from localStorage on mount and
+  sets isAuthenticated = true if token exists.
+
+────────────────────────────────────────────────────────────────────────────────
+PROMPT 9c — Phase 10e: Search Page [USE SONNET 4.6 — feature/frontend worktree]
+────────────────────────────────────────────────────────────────────────────────
+I'm building TrustBase React frontend (React 19, Vite, JSX, React Router v7).
+Backend endpoint: GET /api/companies/search?q=<phone_or_name>
+
+Task: Create src/pages/Search.jsx with:
+- A search input for phone number or business name
+- Nigerian phone validation: /^(0[7-9][0-1]\d{8})$/ (show inline error if invalid)
+- On submit: call GET /api/companies/search?q=<query> via api.get() from src/lib/api.js
+- Show loading state while fetching
+- Show risk score badge (HIGH = red, MEDIUM = orange, LOW = green) from response
+- List reports: scam type, date, amount lost, upvote count
+- Show empty state ("No reports found — this number appears safe")
+- Add route in App.jsx: /search → <Search />
+
+Here is api.js for reference: [paste src/lib/api.js]
+Here is an example existing page: [paste src/pages/Login.jsx]
+
+────────────────────────────────────────────────────────────────────────────────
+PROMPT 9d — Phase 10f: Report Submission Page [USE SONNET 4.6 — feature/frontend worktree]
+────────────────────────────────────────────────────────────────────────────────
+I'm building TrustBase React frontend (React 19, Vite, JSX, React Router v7).
+Backend endpoint: POST /api/reviews (optional auth — anonymous allowed)
+
+Task: Create src/pages/ReportScam.jsx with:
+- Form fields: phone (required), business name (optional), scam type (dropdown),
+  description (textarea), amount lost (optional, number), anonymous toggle
+- Scam type options (exact strings — DB constraint):
+  'Online Marketplace Scam', 'Fake Product / Non-delivery', 'POS Fraud',
+  'Investment / Ponzi', 'Romantic Scam', 'Loan / Finance Fraud',
+  'Job / Recruitment Scam', 'Other'
+- Submit via api.post('/api/reviews', formData)
+- Show success message with the returned risk level after submit
+- If user is logged in (token in localStorage), attach token — otherwise anonymous
+- Add route in App.jsx: /report → <ReportScam />
+
+Here is api.js: [paste src/lib/api.js]
+
+────────────────────────────────────────────────────────────────────────────────
 PROMPT 10 — Documentation Update After a Phase [USE HAIKU 4.5]
 ────────────────────────────────────────────────────────────────────────────────
 Update PROGRESS_LOG.md to document that Phase [X] is complete.
@@ -472,6 +570,7 @@ DIRECT (no sub-agent — I handle it in the main conversation)
 PART G — TrustBase Phase-by-Phase Agent Cheat Sheet
 ================================================================================
 
+BACKEND PHASES (work in: feature/backend worktree)
 Phase | Task                              | Model    | Agent Type
 ------|-----------------------------------|----------|-------------
 1     | Create config files               | Sonnet   | Direct (coding)
@@ -484,11 +583,35 @@ Phase | Task                              | Model    | Agent Type
 7     | Controllers                       | Sonnet   | Direct (coding)
 8     | Route files                       | Sonnet   | Direct (coding)
 9     | Socket.io                         | Sonnet   | Direct (coding)
-10    | Frontend integration              | Sonnet   | Direct (coding)
-11    | Tests                             | Sonnet   | Direct (coding)
-12    | Pipeline setup (Husky/ESLint)     | Sonnet   | Direct (coding)
+11    | Backend tests (Supertest/Jest)    | Sonnet   | Direct (coding)
+12    | Pipeline (Husky/ESLint/GH Actions)| Sonnet   | Direct (coding)
 Any   | Security review                   | Opus     | Direct
 Any   | Update PROGRESS_LOG.md            | Haiku    | Direct
 Any   | Find where something is in code   | Any      | Explore agent
 Any   | Research external service docs    | Any      | General-purpose agent
+
+FRONTEND PHASES (work in: feature/frontend worktree)
+Phase | Task                              | Model    | Worktree → PR when done
+------|-----------------------------------|----------|--------------------------
+10a   | api.js fetch wrapper              | Sonnet   | feature/frontend → PR
+10b   | Login.jsx real API call           | Sonnet   | feature/frontend → PR
+10c   | Signup.jsx real API call          | Sonnet   | feature/frontend → PR
+10d   | App.jsx auth restore on mount     | Sonnet   | feature/frontend → PR
+10e   | Search page (phone + risk score)  | Sonnet   | feature/frontend → PR
+10f   | ReportScam page (form submit)     | Sonnet   | feature/frontend → PR
+10g   | Profile/Dashboard page            | Sonnet   | feature/frontend → PR
+10h   | Protected route guard component   | Sonnet   | feature/frontend → PR
+10i   | Socket.io client (notifications)  | Sonnet   | feature/frontend → PR
+10j   | Sentry frontend setup             | Sonnet   | feature/frontend → PR
+Any   | Simple style/UI fix (<30 lines)   | Haiku    | feature/frontend → PR
+Any   | JWT storage security review       | Opus     | feature/frontend → PR
+
+WORKTREE WORKFLOW (read this before starting any work):
+  1. Open terminal in the worktree folder for what you're building:
+       Backend: cd "C:/Users/HP/Documents/GitHub/trustbase-backend"
+       Frontend: cd "C:/Users/HP/Documents/GitHub/trustbase-frontend"
+  2. Open Claude Code in that folder: claude
+  3. Do the work, commit when done
+  4. Push branch + open PR: gh pr create (Haiku writes the PR description)
+  5. Never commit backend work in the frontend worktree or vice versa.
 ================================================================================

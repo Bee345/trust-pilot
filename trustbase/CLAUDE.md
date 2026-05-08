@@ -204,6 +204,45 @@ Commit format (enforced by commitlint + Husky):
 
 ---
 
+## Git Worktree Workflow — Work Frontend + Backend in Parallel
+
+Two worktrees let you have two terminal sessions open simultaneously without
+switching branches and losing in-progress work.
+
+### Worktree Paths
+- **Backend work**: `C:\Users\HP\Documents\GitHub\trustbase-backend\`  (branch: feature/backend)
+- **Frontend work**: `C:\Users\HP\Documents\GitHub\trustbase-frontend\` (branch: feature/frontend)
+- **Main repo**: `C:\Users\HP\Documents\GitHub\trust pilot\` (branch: main)
+
+### How to Use Worktrees
+```sh
+# Open two terminals — one for each:
+cd "C:\Users\HP\Documents\GitHub\trustbase-backend"
+claude        # start Claude Code here for backend work
+
+cd "C:\Users\HP\Documents\GitHub\trustbase-frontend"
+claude        # start Claude Code here for frontend work
+```
+
+### PR Workflow — Create a PR Every Time You Finish a Task
+After completing any task on either branch:
+```sh
+git add <specific files>
+git commit -m "feat: <what you built>"
+git push origin feature/frontend   # or feature/backend
+gh pr create --title "<short title>" --body "<description>"
+```
+Then wait for review/merge before starting the next phase on that branch.
+
+### Rules for Worktrees
+- NEVER commit backend code in the frontend worktree or vice versa
+- Always run `git status` before committing to confirm you're on the right branch
+- If main gets new commits (merges), pull into your worktree:
+  `git fetch origin && git rebase origin/main`
+- Keep each PR focused on ONE phase or ONE task — no bundling multiple phases
+
+---
+
 ## Implementation Order (see IMPLEMENTATION_PLAN.md for details)
 
 Phase 0:  ✅ Fix bugs (ESM/CJS + missing route files) — DONE
@@ -224,12 +263,40 @@ Phase 12: Pipeline (Husky, ESLint, SonarQube, GitHub Actions, Sentry)
 
 ## Interaction Rules — ALWAYS Follow These
 
+### Rule 0: Read These Four Files at the Start of EVERY Session
+Before doing ANYTHING in this codebase, read all four files in this order:
+1. `trustbase/CLAUDE.md` — this file (architecture rules, tech stack, code rules)
+2. `trustbase/TASK_MODEL_MAP.txt` — which Claude model to use for each task + model switching guide
+3. `trustbase/IMPLEMENTATION_PLAN.md` — what each phase builds, the exact specs
+4. `trustbase/PROCEDURES.md` — step-by-step development procedures
+
+After reading, state:
+- Which worktree you are working in (frontend or backend)
+- Which phase/task is being worked on
+- Which Claude model is correct for this task (per TASK_MODEL_MAP.txt Part C)
+- If the wrong model is active: STOP and tell the user which model to open instead
+
+**Model switching rule**: The model cannot be changed mid-session without losing context.
+Open a NEW terminal with the correct model BEFORE starting the task:
+  - Haiku tasks: `claude --model claude-haiku-4-5-20251001`
+  - Sonnet tasks: `claude` (default)
+  - Opus tasks:   `claude --model claude-opus-4-7`
+
 ### Rule 1: Always Ask Before Starting the Next Phase
 After completing any task or phase, ALWAYS:
 1. State clearly what was just completed and what changed
 2. Use the AskUserQuestion tool to present the next options
 3. NEVER automatically start the next phase without asking
 4. Give the user a choice of: proceed to next phase / do something else / review first
+
+### Rule 2b: Commit and PR Messages Must Reflect What Was Done
+Every commit message and PR description must be generated from the actual work
+carried out before the commit — not a generic or template message.
+
+Before every commit:
+1. Claude generates 3 suggested commit messages based on what was just built
+2. User picks one (or provides their own)
+3. Never use "Co-Authored-By: Claude" lines — the message is the user's
 
 ### Rule 2: Always Document New Features
 Whenever a new feature, file, or endpoint is added:
@@ -239,11 +306,13 @@ Whenever a new feature, file, or endpoint is added:
 4. Add inline explanation in the file itself if the WHY is non-obvious
 
 ### Rule 3: Read Before Building
-Before writing ANY backend code:
-1. Read CLAUDE.md (this file) first
-2. Read the relevant phase in IMPLEMENTATION_PLAN.md
-3. Read BACKEND_RULES.md for coding rules
-4. Check PROGRESS_LOG.md to know what's already done
+Before writing ANY code (backend OR frontend):
+1. Read CLAUDE.md (this file) — architecture rules and tech stack
+2. Read TASK_MODEL_MAP.txt — confirm correct model for this task
+3. Read the relevant phase section in IMPLEMENTATION_PLAN.md — exact specs
+4. Read PROCEDURES.md — if setting up anything new or unfamiliar
+5. Check PROGRESS_LOG.md — to know what is already done
+6. Read BACKEND_RULES.md — backend coding rules (backend tasks only)
 
 ---
 
