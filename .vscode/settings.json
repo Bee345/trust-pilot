@@ -1,0 +1,3 @@
+{
+  "typescript.tsserver.ignoredCodes": [80001]
+}
