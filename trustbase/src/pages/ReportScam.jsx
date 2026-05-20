@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, Phone, Briefcase, AlertCircle, CheckCircle2, Upload, X } from 'lucide-react';
+import { api } from '../lib/api';
 
 const SCAM_TYPES = [
   'Online Marketplace Scam',
@@ -23,6 +24,8 @@ export default function ReportScam() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [riskLevel, setRiskLevel] = useState(null);
 
   const handleNext = () => {
     if (step < 3) setStep(step + 1);
@@ -33,12 +36,26 @@ export default function ReportScam() {
     else navigate(-1);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    setError('');
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const payload = {
+        phone: form.phone || undefined,
+        businessName: form.business || undefined,
+        scamType: form.scamType,
+        description: form.description,
+        amountLost: form.amount ? Number(form.amount) : undefined,
+        anonymous: form.anonymous,
+      };
+      const res = await api.post('/api/reviews', payload);
+      setRiskLevel(res?.report?.risk_level ?? null);
       setSubmitted(true);
-    }, 1500);
+    } catch (err) {
+      setError(err.message || 'Failed to submit report');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (submitted) {
@@ -63,9 +80,19 @@ export default function ReportScam() {
         <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#1A2B3C', marginBottom: '12px' }}>
           Report Submitted! 🎉
         </h2>
-        <p style={{ color: '#8896A5', fontSize: '15px', lineHeight: '1.6', marginBottom: '32px' }}>
+        <p style={{ color: '#8896A5', fontSize: '15px', lineHeight: '1.6', marginBottom: riskLevel ? '16px' : '32px' }}>
           Thank you for helping protect the community. Your report is under review and will be visible soon.
         </p>
+        {riskLevel && (
+          <div style={{
+            display: 'inline-block', padding: '8px 18px', borderRadius: '999px',
+            fontSize: '13px', fontWeight: '700', marginBottom: '32px',
+            background: riskLevel === 'high' ? '#FFEBEE' : riskLevel === 'medium' ? '#FFF8E1' : '#E8F5E9',
+            color: riskLevel === 'high' ? '#C62828' : riskLevel === 'medium' ? '#EF6C00' : '#2E7D32',
+          }}>
+            Risk Level: {riskLevel.toUpperCase()}
+          </div>
+        )}
 
         <div style={{
           background: '#F0FFF4', borderRadius: '16px', padding: '20px',
@@ -383,6 +410,15 @@ export default function ReportScam() {
                 Only report genuine scams you have personally experienced.
               </p>
             </div>
+          </div>
+        )}
+
+        {error && (
+          <div style={{
+            background: '#FFF5F5', border: '1px solid #FFC5C5', borderRadius: '10px',
+            padding: '12px 14px', fontSize: '13px', color: '#C62828', marginBottom: '12px',
+          }}>
+            {error}
           </div>
         )}
 

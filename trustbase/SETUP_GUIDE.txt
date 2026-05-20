@@ -1,0 +1,942 @@
+================================================================================
+TRUSTBASE - COMPLETE SETUP GUIDE
+================================================================================
+Plain-text guide. Read top to bottom on first pass.
+
+WHAT THIS FILE IS:
+  A single document that contains:
+    (1) Everything that was done in this Claude Code session
+    (2) Step-by-step directions for every third-party account you need to create
+    (3) Useful commands and where to run them
+  Once you finish every section below, your TrustBase prototype is live.
+
+LAST UPDATED: 2026-05-18
+
+PROJECT: TrustBase - Nigerian scam-reporting and trust-verification mobile-first
+web app. "Trustpilot for Nigeria." Target audience: everyday Nigerians who want
+to "verify before they pay."
+
+REPO: https://github.com/Bee345/trust-pilot
+BRANCH STRUCTURE:
+  main                - production branch, protected
+  feature/frontend    - all frontend work (worktree at C:\Users\HP\Documents\GitHub\trustbase-frontend)
+  feature/backend     - all backend work (worktree at C:\Users\HP\Documents\GitHub\trustbase-backend)
+
+
+================================================================================
+PART 1 - WHAT WAS DONE IN THIS SESSION (2026-05-18)
+================================================================================
+
+The session worked through the recommended sequence:
+1 -> 2 -> 13 -> 5 -> 11 -> 12 -> 6 -> 7 -> 3 -> 4 -> 8 -> 9 -> 10 -> 14 -> 15
+
+Below is exactly what got written to disk, in order.
+
+------------------------------------------------------------
+DOCUMENTATION FILES REWRITTEN
+------------------------------------------------------------
+* trustbase/PIPELINE.md
+  Rewritten as a 16-chapter beginner walkthrough with table of contents,
+  troubleshooting appendix, and exact dashboard click-by-click instructions
+  for every third-party service.
+
+* trustbase/MCP_SETUP.md
+  Rewritten with token-cost explanation, verified Postman MCP install,
+  three ways to disable unused MCPs, and recommended global-vs-project-vs-
+  local settings split so secrets stay out of git.
+
+* trustbase/IMPLEMENTATION_PLAN.md
+  Added a status table at the top showing each phase's real state (verified
+  on disk, not just what the plan claimed). Added a "Companion Documents"
+  table linking to every related doc. Added a Phase 12 chapter pointing to
+  PIPELINE.md. Added a Phase 10 sub-task table showing which frontend pages
+  are done versus remaining.
+
+* trustbase/PROGRESS_LOG.md
+  Replaced every [DATE] placeholder with real dated entries. Flagged Phase 2
+  (database schema) as STATUS UNKNOWN because there's no way to verify SQL
+  ran in Supabase from disk. Listed every "additional file beyond the spec"
+  that exists (AppError.js, constants/index.js, security.js, etc.).
+
+------------------------------------------------------------
+PHASE 10 FRONTEND - WHAT GOT WIRED TO REAL APIS
+------------------------------------------------------------
+Already wired before the session:
+  src/lib/api.js                 - fetch wrapper with JWT injection + 401 redirect
+  src/pages/Login.jsx            - POST /api/auth/login
+  src/pages/Signup.jsx           - POST /api/auth/signup
+  src/App.jsx                    - reads token from localStorage on mount
+
+Wired in this session (uncommitted on main, need to move to feature/frontend):
+  src/pages/Home.jsx             - GET /api/reviews
+  src/pages/SearchResults.jsx    - GET /api/companies/search
+  src/pages/ReportScam.jsx       - POST /api/reviews (with risk-level badge)
+  src/pages/GetVerified.jsx      - POST /api/verify/initiate (with Paystack redirect)
+  src/pages/ReportsList.jsx      - GET /api/reviews with pagination
+  src/pages/VerificationStatus.jsx - GET /api/verify/status (computes step states)
+  src/pages/Profile.jsx          - GET/PUT /api/users/me
+
+Still TODO (needs backend endpoints that don't exist yet):
+  src/pages/MyReports.jsx        - needs GET /api/reviews/mine
+  src/pages/Notifications.jsx    - needs Socket.io client + GET /api/notifications
+  Protected route guard component
+
+------------------------------------------------------------
+CODE FILES CREATED OR EDITED
+------------------------------------------------------------
+* trust pilot/package.json
+  NEW root-level package.json so Husky can install at the git root.
+  Contains lint-staged config that runs ESLint + Prettier on staged files
+  from trustbase/ and trustbase/backend/ separately.
+
+* trust pilot/commitlint.config.js
+  NEW. Enforces "feat:", "fix:", "chore:", "docs:", "test:", "refactor:",
+  "style:", "ci:" prefixes on commit messages.
+
+* trust pilot/.husky/pre-commit
+  NEW. Runs lint-staged on every commit.
+
+* trust pilot/.husky/commit-msg
+  NEW. Runs commitlint on every commit message.
+
+* trust pilot/.gitignore
+  NEW. Ignores node_modules, .husky/_, *.patch, etc.
+
+* trust pilot/.vscode/settings.json
+  Updated. Format-on-save + ESLint auto-fix on save. Working directories
+  configured for both frontend and backend.
+
+* trustbase/.prettierrc and trustbase/.prettierignore
+  NEW. Prettier config for the frontend.
+
+* trustbase/backend/.prettierrc
+  NEW. Prettier config for the backend.
+
+* trustbase/backend/src/app.js
+  Added Sentry.init() at the top (no-op when SENTRY_DSN env var is missing).
+  Added Sentry.setupExpressErrorHandler() before the global error handler.
+
+* trustbase/src/main.jsx
+  Added Sentry.init() that runs only when VITE_SENTRY_DSN is set.
+
+* trustbase/backend/src/server.js
+  Added /* eslint-disable-next-line no-console */ above the startup
+  console.log so the project's no-console rule does not flag it. (This
+  is a legitimate startup message until pino logger is added.)
+
+* trustbase/package.json
+  Removed the duplicate husky/lint-staged/commitlint devDependencies that
+  leaked in. Added "format" and "format:check" npm scripts using Prettier.
+
+------------------------------------------------------------
+TEST FILES CREATED
+------------------------------------------------------------
+* trustbase/backend/src/__tests__/validators.unit.test.js
+  24 unit tests for Zod schemas. Validates Nigerian phone regex against
+  valid and invalid formats. Tests signup, login, report, verification
+  schemas. All pass.
+
+* trustbase/backend/src/__tests__/risk.unit.test.js
+  9 unit tests for the computeRiskScore() function. Tests edge cases
+  (empty array, null input), score cap at 100, "Multiple Victims" tag
+  at 3+ reports, recency boost on recent reports. All pass.
+
+* trustbase/backend/src/__tests__/auth.integration.test.js
+  Integration tests using Supertest. Hits real Supabase. Skips if
+  SUPABASE_URL, SUPABASE_KEY, JWT_SECRET env vars are missing.
+  Covers: signup (validation, success), login (success, wrong password,
+  nonexistent phone), /users/me auth check, /health endpoint.
+
+Run unit tests:
+  cd "C:\Users\HP\Documents\GitHub\trust pilot\trustbase\backend"
+  npm test -- --testPathPattern=unit
+
+Run all tests (including integration, requires test env vars):
+  cd "C:\Users\HP\Documents\GitHub\trust pilot\trustbase\backend"
+  npm test
+
+Run with coverage report:
+  cd "C:\Users\HP\Documents\GitHub\trust pilot\trustbase\backend"
+  npm run test:coverage
+
+Run a single test file:
+  cd "C:\Users\HP\Documents\GitHub\trust pilot\trustbase\backend"
+  npm test -- --testPathPattern=validators
+
+Use these when:
+  - Before every commit, to confirm nothing broke
+  - After editing any file in src/utils/ or src/services/
+  - In the CI workflow (already configured in .github/workflows/ci.yml)
+  - To check coverage before pushing (must be over 70% for SonarCloud)
+
+------------------------------------------------------------
+DEPENDENCIES INSTALLED
+------------------------------------------------------------
+At trust pilot/ root:
+  husky                       (^9.1.0)
+  lint-staged                 (^15.0.0)
+  @commitlint/cli             (^19.0.0)
+  @commitlint/config-conventional (^19.0.0)
+
+At trustbase/:
+  @sentry/react               (^10.53.1)
+
+(Note: husky/lint-staged/commitlint were initially installed in trustbase/
+also, but those leaked entries were removed.)
+
+------------------------------------------------------------
+MEMORY FILES SAVED (for future Claude Code sessions)
+------------------------------------------------------------
+C:\Users\HP\.claude\projects\C--Users-HP-Documents-GitHub-trust-pilot\memory\
+
+* feedback_doc_style.md
+  Records that you prefer long PDF-style walkthroughs for MD files, not
+  terse reference docs.
+
+* project_hosting.md
+  Records the hosting decision: Vercel + Railway + Supabase, no GCP, no
+  custom domain for the prototype.
+
+* MEMORY.md
+  Index updated with links to the new memory files.
+
+
+================================================================================
+PART 2 - WHAT YOU STILL NEED TO DO (BROWSER + TERMINAL ACTIONS)
+================================================================================
+
+This is the punch list. Do them in order. Each section is self-contained.
+
+------------------------------------------------------------
+STEP A - RUN THE DATABASE SCHEMA SQL IN SUPABASE
+------------------------------------------------------------
+
+Why: The backend will start fine without this, but every endpoint that
+touches the database will return 500. Phase 2 has been listed as STATUS
+UNKNOWN because there is no way for code to verify SQL ran on Supabase.
+
+What to do:
+
+1. Go to https://app.supabase.com
+2. Click "New project" - call it trustbase-prod
+   Region: EU West (Ireland) - closest stable region for Nigeria
+   Database password: generate a strong one, save to password manager
+3. Click "New project" AGAIN - call it trustbase-test
+   This second project is for CI tests. Yes you need both.
+4. For EACH project:
+   a. Click "SQL Editor" in the left sidebar
+   b. Click "New query"
+   c. Open IMPLEMENTATION_PLAN.md, find the Phase 2 section
+   d. Copy the entire SQL block (CREATE TABLE users, reports, report_upvotes,
+      verifications, indexes, increment_trust_points function)
+   e. Paste into the SQL editor
+   f. Click "Run"
+   g. You should see "Success. No rows returned."
+5. For EACH project, enable Row Level Security:
+   a. Authentication -> Policies
+   b. For each of the 4 tables (users, reports, report_upvotes, verifications),
+      click the table and toggle "Enable RLS"
+   c. The backend uses the service-role key which bypasses RLS, so this
+      protects against accidental anon-key leaks.
+6. For EACH project, copy these into your password manager:
+   Settings -> API:
+     Project URL          -> rename to "TRUSTBASE_PROD_SUPABASE_URL" (or _TEST)
+     service_role key     -> rename to "TRUSTBASE_PROD_SUPABASE_KEY" (or _TEST)
+   Settings -> Database:
+     Connection string (URI format) -> "TRUSTBASE_PROD_DATABASE_URL"
+
+NEVER share the service_role key. It bypasses Row Level Security.
+
+------------------------------------------------------------
+STEP B - MOVE UNCOMMITTED FRONTEND CHANGES TO feature/frontend
+------------------------------------------------------------
+
+Why: The Phase 10 frontend edits are currently uncommitted on main. The
+worktree rule in CLAUDE.md says frontend work must live on feature/frontend.
+A patch file has been saved at trustbase/phase10-home-search.patch.
+
+What to do (run each command in your terminal):
+
+  cd "C:\Users\HP\Documents\GitHub\trustbase-frontend"
+  git fetch origin
+  git checkout feature/frontend
+  git pull origin feature/frontend
+
+  cp "C:\Users\HP\Documents\GitHub\trust pilot\trustbase\phase10-home-search.patch" .
+  git apply --3way phase10-home-search.patch
+
+  git status
+  git diff src/pages/Home.jsx | head -30
+
+  git add src/pages/Home.jsx src/pages/SearchResults.jsx
+  git commit -m "feat: wire Home and SearchResults to real API"
+  git push origin feature/frontend
+
+If you have GitHub CLI installed:
+  gh pr create --base main --title "Phase 10: wire Home + Search to real API" --body "Replaces hardcoded arrays with GET /api/reviews and GET /api/companies/search."
+
+Then back in the main repo:
+  cd "C:\Users\HP\Documents\GitHub\trust pilot"
+  git checkout -- trustbase/src/pages/Home.jsx trustbase/src/pages/SearchResults.jsx
+  rm trustbase/phase10-home-search.patch
+
+For the OTHER pages that were wired in this session (ReportScam.jsx,
+GetVerified.jsx, ReportsList.jsx, VerificationStatus.jsx, Profile.jsx),
+do the same flow: copy the diffs over to feature/frontend, commit them
+there, push, open a PR.
+
+------------------------------------------------------------
+STEP C - CLEAN UP UNUSED MCP SERVERS (SAVES ABOUT 30000 TOKENS PER DAY)
+------------------------------------------------------------
+
+Why: Each MCP server adds tool schemas to Claude's context on every turn.
+Google Drive / Gmail / Calendar / Gamma servers are loaded but never used
+for TrustBase. Removing them saves money on every Claude Code session.
+
+What to do:
+
+1. Open Notepad: Press Win+R, type: notepad C:\Users\HP\.claude\settings.json
+2. Find the "mcpServers" block (or similar - it may be named differently)
+3. Delete the entries named anything like:
+     Google_Drive (or claude_ai_Google_Drive)
+     Gmail (or claude_ai_Gmail)
+     Google_Calendar (or claude_ai_Google_Calendar)
+     Gamma (or claude_ai_Gamma)
+4. Keep the "ide" entry (VS Code integration - used by AntiGravity)
+5. Save the file
+6. Close every Claude Code terminal window (not just Ctrl+C - close the whole window)
+7. Reopen Claude Code
+8. In a new session, type:  /mcp
+9. The four servers above should be gone from the list
+
+------------------------------------------------------------
+STEP D - CREATE TWILIO ACCOUNT (FOR SMS OTP)
+------------------------------------------------------------
+
+Why: When users sign up, they get a 6-digit code via SMS to prove they own
+the phone number. Twilio handles the SMS. Trial gives $15 free credit
+(about 300 SMSes - enough for a prototype).
+
+What to do:
+
+1. Go to https://www.twilio.com
+2. Click "Sign up free" - use your email
+3. Verify your email (click the link Twilio sends you)
+4. Verify your OWN Nigerian phone number (Twilio sends YOU an SMS code first)
+5. Skip any "select use case" wizards if asked - they don't matter for trial
+6. From the Console Dashboard, copy these to your password manager:
+     Account SID  (starts with AC followed by 32 hex chars)
+     Auth Token   (click "Show" to reveal)
+7. Buy a phone number:
+     Console -> Phone Numbers -> Manage -> Buy a Number
+     Filter: Country = United States, Capability = SMS
+     (US numbers can send to Nigeria. Nigerian numbers require business
+     registration paperwork and a Nigerian business address.)
+     Cost: $1.15/month, charged from your trial credit
+     Click "Buy" on any cheap available number
+     Copy the number, e.g. +13105551234
+8. While on trial, add your test Nigerian number to verified caller IDs:
+     Console -> Phone Numbers -> Verified Caller IDs -> Add
+     Trial accounts can only SEND to numbers you have verified.
+9. Update trustbase/backend/.env:
+     TWILIO_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+     TWILIO_TOKEN=your-auth-token-here
+     TWILIO_PHONE=+13105551234
+
+When you launch publicly, upgrade out of trial mode (about $20) to send to
+any Nigerian number without prior verification.
+
+------------------------------------------------------------
+STEP E - CREATE PAYSTACK ACCOUNT (PERSONAL ACCOUNT - FOR PAYMENTS)
+------------------------------------------------------------
+
+Why: Verification badges cost N2,000 (individual) or N5,000 (business).
+Paystack processes the card / bank transfer / USSD payment and calls your
+backend webhook when payment succeeds.
+
+You said you want to use a PERSONAL Paystack account. That works fine for
+test mode (which is all you need for the prototype). You can switch to a
+registered business later when you go live.
+
+What to do:
+
+1. Go to https://paystack.com
+2. Click "Sign up free" or "Get started for free"
+3. Sign up with your personal email and name
+4. Verify your email
+5. On the dashboard, you start in TEST MODE by default (look for the toggle
+   at the top - leave it on "Test Mode" for everything in this prototype phase)
+6. Settings -> API Keys & Webhooks - copy these:
+     Test Secret Key (starts with sk_test_)  -> save to password manager
+     Test Public Key (starts with pk_test_)  -> you may need this later
+7. Webhooks (in that same page):
+     Test Webhook URL:
+       For now, leave blank.
+       After STEP I (Railway deploy), set it to:
+         https://your-railway-url/api/verify/webhook
+     For local testing, you'll use ngrok (see "Local webhook testing" below).
+8. Update trustbase/backend/.env:
+     PAYSTACK_SECRET=sk_test_xxxxxxxxxxxx
+     FRONTEND_URL=http://localhost:5173
+
+ABOUT PERSONAL VS BUSINESS PAYSTACK:
+  - Test mode works fully on a personal account, no extra paperwork
+  - To accept REAL money in live mode, Paystack requires either:
+      * A registered Nigerian business (CAC certificate), or
+      * Tax ID + bank account in your personal name (for sole proprietors)
+  - For the prototype phase, do everything in test mode on your personal account
+  - When you incorporate (CAC registration) later, you can upgrade the same
+    Paystack account or create a new business one
+
+TEST CARD NUMBERS (Paystack will always approve these in test mode):
+  Success:           4084 0840 8408 4081, CVV 408, any future expiry
+  Insufficient funds: 5060 6666 6666 6666 666
+
+LOCAL WEBHOOK TESTING WITH NGROK:
+  Paystack cannot call your localhost. Use ngrok to expose your local
+  backend to the public internet for webhook testing:
+
+    npm install -g ngrok
+    ngrok http 3000
+
+  Ngrok prints a URL like https://abc123.ngrok.io. Paste that plus
+  /api/verify/webhook into Paystack's test webhook URL field. Now
+  Paystack calls your localhost backend through ngrok.
+
+------------------------------------------------------------
+STEP F - CREATE SENTRY ACCOUNT (ERROR MONITORING)
+------------------------------------------------------------
+
+Why: When a user gets a 500 error in production, you need to know about it.
+Sentry captures the full stack trace, the request payload, and emails you.
+Without this, errors silently disappear.
+
+The code (Sentry.init() in app.js and main.jsx) is already in place.
+You just need to create the accounts and paste the DSN values into .env.
+
+What to do:
+
+1. Go to https://sentry.io
+2. Click "Get Started" - sign up with email
+3. Verify your email
+4. When asked "What's your platform?" - you'll be doing TWO projects:
+     a. First project: name "trustbase-frontend", platform: React
+        After creation, find the DSN. It looks like:
+          https://abcdef1234567890@o123456.ingest.sentry.io/7654321
+        Save it as VITE_SENTRY_DSN
+     b. Click "+ Create Project" again
+        Name "trustbase-backend", platform: Node.js / Express
+        Find the DSN. Save as SENTRY_DSN (different value from frontend!)
+5. Update trustbase/.env:
+     VITE_SENTRY_DSN=https://YOUR_FRONTEND_DSN
+6. Update trustbase/backend/.env:
+     SENTRY_DSN=https://YOUR_BACKEND_DSN
+     NODE_ENV=development
+7. To verify Sentry is wired correctly, add a temporary debug route in
+   trustbase/backend/src/app.js (above the 404 handler):
+
+     app.get('/debug-sentry', () => {
+       throw new Error('Sentry test error');
+     });
+
+   Restart the backend, hit http://localhost:3000/debug-sentry, then refresh
+   the Sentry dashboard. You should see "Sentry test error" within 30 seconds.
+   DELETE the test route after verification.
+
+------------------------------------------------------------
+STEP G - CREATE SONARCLOUD ACCOUNT (CODE QUALITY)
+------------------------------------------------------------
+
+Why: SonarCloud analyses every push for bugs, security vulnerabilities,
+duplications, and test coverage. It blocks PRs from merging if quality
+drops below your standard. Free for public GitHub repos.
+
+What to do:
+
+1. Go to https://sonarcloud.io
+2. Click "Log in" -> "With GitHub" -> authorize SonarCloud
+3. Click "+" (top right) -> "Analyze new project"
+4. Click "Import an organization from GitHub" -> select your GitHub account
+5. Select the trust-pilot repository -> click "Set Up"
+6. On the "Analysis Method" screen, choose "With GitHub Actions"
+   (NOT the automatic SonarCloud scan - we want it driven by our workflow)
+7. Generate the token:
+     Click your avatar (top right) -> "My Account"
+     Click the "Security" tab
+     Under "Generate Tokens", name it TRUSTBASE_SONAR
+     Click "Generate"
+     Copy the token immediately - you can never see it again
+8. Add to GitHub secrets:
+     Go to https://github.com/Bee345/trust-pilot
+     Settings -> Secrets and variables -> Actions
+     Click "New repository secret"
+     Name: SONAR_TOKEN
+     Value: the token you just copied
+     Click "Add secret"
+9. Verify sonar-project.properties at trustbase/ root has the correct
+   sonar.organization and sonar.projectKey. Find these values in your
+   SonarCloud project URL: https://sonarcloud.io/project/overview?id=PROJECT_KEY
+10. Configure the quality gate:
+     SonarCloud -> your project -> Administration -> Quality Gates
+     Click "Create" -> name it "TrustBase Gate"
+     Add these conditions on NEW CODE:
+       Coverage > 70%
+       Duplicated lines < 3%
+       Bugs = 0
+       Vulnerabilities = 0
+       Security Hotspots Reviewed = 100%
+       Maintainability Rating = A
+     Save, then go to your project and set "TrustBase Gate" as the default
+
+------------------------------------------------------------
+STEP H - CREATE VERCEL ACCOUNT (FRONTEND HOSTING)
+------------------------------------------------------------
+
+Why: Vercel hosts your React frontend on a free CDN. Deploys take 90 seconds.
+Free SSL, free .vercel.app subdomain, deploys on every push to main.
+
+What to do:
+
+1. Go to https://vercel.com
+2. Click "Sign Up" -> "Continue with GitHub" -> authorize
+3. From the dashboard, click "Add New" -> "Project"
+4. Find "trust-pilot" in the list of imported repos -> click "Import"
+5. Configuration screen - set these EXACTLY:
+     Framework Preset:    Vite
+     Root Directory:      trustbase   (click "Edit" and type this)
+     Build Command:       npm run build
+     Output Directory:    dist
+     Install Command:     npm install
+6. Expand "Environment Variables" and add:
+     VITE_API_URL = http://localhost:3000
+       (you will change this after Railway deploy)
+     VITE_SENTRY_DSN = your frontend Sentry DSN from STEP F
+7. Click "Deploy"
+8. Wait 60-90 seconds. You'll get a URL like trust-pilot-abc123.vercel.app
+9. Visit the URL in your browser - the TrustBase frontend should load
+10. Get the project IDs for GitHub Actions:
+
+     cd "C:\Users\HP\Documents\GitHub\trust pilot\trustbase"
+     npm install -g vercel
+     vercel login
+     vercel link
+
+     This creates trustbase/.vercel/project.json. Open it. You'll see:
+       {
+         "projectId": "prj_xxxxxxxxxxxx",
+         "orgId": "team_xxxxxxxxxxxx"
+       }
+
+11. Generate a Vercel token:
+     vercel.com -> avatar -> Settings -> Tokens -> Create
+     Name it: github-actions-deploy
+     Copy the token immediately
+12. Add to GitHub secrets:
+     VERCEL_PROJECT_ID  = prj_xxxxxxxxxxxx
+     VERCEL_ORG_ID      = team_xxxxxxxxxxxx
+     VERCEL_TOKEN       = the token you just created
+
+The .vercel folder is gitignored. Don't commit it.
+
+------------------------------------------------------------
+STEP I - CREATE RAILWAY ACCOUNT (BACKEND HOSTING)
+------------------------------------------------------------
+
+Why: Railway is the easiest way to deploy a Node.js Express server. $5 free
+credit per month covers a small prototype. Deploys on every push to main.
+
+What to do:
+
+1. Go to https://railway.app
+2. Click "Login" -> "Continue with GitHub" -> authorize
+3. From the dashboard, click "New Project"
+4. Click "Deploy from GitHub repo"
+5. Select Bee345/trust-pilot
+6. After it imports, click the service tile (the colored box) to open settings
+7. Settings tab:
+     Root Directory:    trustbase/backend
+     Start Command:     node src/server.js
+     Build Command:     leave blank (Railway auto-detects)
+8. Variables tab:
+     Click "Raw Editor"
+     Paste your ENTIRE trustbase/backend/.env contents
+     BUT change a few values:
+       - Use PRODUCTION Supabase credentials (not the test project)
+       - Set NODE_ENV=production
+       - Set FRONTEND_URL=https://your-vercel-url.vercel.app
+9. Settings -> Networking -> Public Networking:
+     Click "Generate Domain"
+     You get a URL like trustbase-backend-production.up.railway.app
+10. Click "Deploy" (or it may auto-deploy)
+11. Wait 2-3 minutes. Visit https://your-railway-url/health
+    You should see: {"status":"ok","timestamp":"...","requestId":"..."}
+12. Generate a Railway token:
+     railway.app -> Account Settings -> Tokens
+     Click "Create Token"
+     Name: github-actions-deploy
+     Copy the token immediately
+13. Add to GitHub secrets:
+     RAILWAY_TOKEN     = the token you just created
+     VITE_API_URL      = https://your-railway-url
+     FRONTEND_URL      = https://your-vercel-url.vercel.app
+     SENTRY_DSN        = your BACKEND Sentry DSN
+     TEST_SUPABASE_URL    = your TEST Supabase project URL
+     TEST_SUPABASE_KEY    = your TEST Supabase service_role key
+     TEST_DATABASE_URL    = your TEST Supabase Postgres connection string
+     TEST_JWT_SECRET      = generate with: node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+14. Back in Vercel dashboard:
+     Your project -> Settings -> Environment Variables
+     Update VITE_API_URL to your Railway URL
+     Click "Save"
+     Then Deployments tab -> click the latest -> "Redeploy"
+15. Back in Paystack:
+     Settings -> Webhooks
+     Set Test Webhook URL to: https://your-railway-url/api/verify/webhook
+     Click "Save"
+
+------------------------------------------------------------
+STEP J - SET UP BRANCH PROTECTION ON MAIN
+------------------------------------------------------------
+
+Why: After everything else is configured, this is the final lock. It makes
+it impossible to push directly to main or merge a PR with failing CI.
+
+What to do:
+
+1. Go to your GitHub repo: https://github.com/Bee345/trust-pilot
+2. Settings tab -> Branches (in left sidebar)
+3. Click "Add branch protection rule"
+4. Branch name pattern: main
+5. Check these boxes:
+     [x] Require a pull request before merging
+     [x] Require approvals: 1   (or 0 if you're solo, enable when team grows)
+     [x] Require status checks to pass before merging
+     [x] Require branches to be up to date before merging
+6. Under "Status checks that are required", search and add (these only appear
+   after the CI has run at least once on a PR):
+     Frontend Lint & Build
+     Backend Lint & Test
+     SonarCloud Analysis
+     CodeQL Security Scan
+7. Check the box:
+     [x] Do not allow bypassing the above settings
+8. Click "Create" at the bottom
+
+After this, the only way code reaches main is through a PR that passes all checks.
+
+------------------------------------------------------------
+STEP K - SET UP POSTMAN MCP SERVER (FOR API TESTING FROM CLAUDE)
+------------------------------------------------------------
+
+Why: Lets Claude Code read your Postman collections, run requests, view
+environments. Useful when you have the TrustBase API defined as a Postman
+collection and want Claude to test endpoints without you copy-pasting curls.
+
+What to do:
+
+1. Go to https://www.postman.com
+2. Sign in (or sign up free)
+3. Click your avatar (top right) -> Settings
+4. Click "API Keys" in the left sidebar
+5. Click "Generate API Key"
+6. Name it: claude-code-mcp
+7. Copy the key (starts with PMAK-)
+8. Open: notepad C:\Users\HP\.claude\settings.json
+9. Inside the mcpServers block (or add one if not there), add:
+
+     "postman": {
+       "command": "npx",
+       "args": ["-y", "@postman/mcp-server"],
+       "env": {
+         "POSTMAN_API_KEY": "PMAK-your-actual-key-here"
+       }
+     }
+
+10. Save the file (make sure it's still valid JSON - no trailing commas)
+11. Close every Claude Code terminal window completely
+12. Reopen Claude Code
+13. In a new session, type:  /mcp
+14. The "postman" server should appear in the list
+15. Test it: ask Claude "list my Postman workspaces"
+
+If the package errors on install, check https://github.com/postmanlabs for
+the current package name (Postman has renamed their MCP a few times).
+
+------------------------------------------------------------
+STEP L - SET UP GITHUB + SUPABASE MCP SERVERS
+------------------------------------------------------------
+
+Why: GitHub MCP lets Claude read your repo, create issues, view PRs.
+Supabase Postgres MCP lets Claude query your database directly while
+debugging. Both are huge time-savers.
+
+What to do:
+
+1. Generate GitHub Personal Access Token:
+     github.com -> Settings -> Developer settings -> Personal access tokens
+     -> Tokens (classic) -> "Generate new token (classic)"
+     Note: claude-code-mcp
+     Expiration: 90 days (or longer if you want)
+     Scopes: check "repo", "read:org", "read:user"
+     Click "Generate token" at the bottom
+     Copy the token (starts with ghp_)
+
+2. Get your Supabase test connection string:
+     supabase.com -> trustbase-TEST project (not prod!) -> Settings -> Database
+     Connection string -> URI format
+     Replace [YOUR-PASSWORD] in the string with your real DB password
+     Copy the full string
+
+3. Edit C:\Users\HP\.claude\settings.json. Inside the mcpServers block, add:
+
+     "github": {
+       "command": "npx",
+       "args": ["-y", "@modelcontextprotocol/server-github"],
+       "env": {
+         "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_your_token_here"
+       }
+     },
+     "supabase-db": {
+       "command": "npx",
+       "args": ["-y", "@modelcontextprotocol/server-postgres"],
+       "env": {
+         "POSTGRES_CONNECTION_STRING": "postgresql://postgres:PASSWORD@db.YOUR_PROJECT.supabase.co:5432/postgres"
+       }
+     }
+
+4. Save the file, close all Claude Code windows, reopen
+5. Type /mcp - both should appear
+6. Test:
+     "list open PRs on trust-pilot"
+     "show me the users table schema"
+
+NEVER use your PRODUCTION Supabase connection string here. Always use the
+test project. The MCP gives Claude full database read/write access.
+
+
+================================================================================
+PART 3 - USEFUL COMMANDS REFERENCE (AND WHERE TO USE THEM)
+================================================================================
+
+------------------------------------------------------------
+RUNNING TESTS
+------------------------------------------------------------
+
+Unit tests only (fast, no DB needed) - run anytime, especially before commits:
+  cd "C:\Users\HP\Documents\GitHub\trust pilot\trustbase\backend"
+  npm test -- --testPathPattern=unit
+
+All tests including integration (requires TEST_SUPABASE_* env vars):
+  cd "C:\Users\HP\Documents\GitHub\trust pilot\trustbase\backend"
+  npm test
+
+Tests with coverage report (run before pushing for SonarCloud):
+  cd "C:\Users\HP\Documents\GitHub\trust pilot\trustbase\backend"
+  npm run test:coverage
+
+Just one test file:
+  cd "C:\Users\HP\Documents\GitHub\trust pilot\trustbase\backend"
+  npm test -- --testPathPattern=validators
+  npm test -- --testPathPattern=risk
+  npm test -- --testPathPattern=auth
+
+WHEN to run each:
+  - "unit" pattern:        every save, before every commit (takes 5 seconds)
+  - full "npm test":       before pushing a PR (takes 30+ seconds)
+  - test:coverage:         once you want to see what % is covered
+  - single file pattern:   while writing or debugging one test
+
+------------------------------------------------------------
+STARTING THE DEV SERVERS
+------------------------------------------------------------
+
+Open TWO terminal windows. Backend in one, frontend in the other.
+
+Backend (port 3000):
+  cd "C:\Users\HP\Documents\GitHub\trust pilot\trustbase\backend"
+  npm run dev
+
+Frontend (port 5173):
+  cd "C:\Users\HP\Documents\GitHub\trust pilot\trustbase"
+  npm run dev
+
+Verify backend is up:
+  Open browser at http://localhost:3000/health
+  Should show: {"status":"ok","timestamp":"...","requestId":"..."}
+
+Verify frontend is up:
+  Open browser at http://localhost:5173
+  Should show the TrustBase UI
+
+------------------------------------------------------------
+LINTING AND FORMATTING
+------------------------------------------------------------
+
+Frontend (from trustbase/):
+  npm run lint              -- check for ESLint errors
+  npm run format            -- auto-format with Prettier
+  npm run format:check      -- check formatting without fixing
+
+Backend (from trustbase/backend/):
+  npm run lint              -- check for ESLint errors
+  npm run lint:fix          -- auto-fix what ESLint can fix
+
+These run automatically on every commit via Husky. Run them manually when:
+  - You suspect a file has lint errors and want to confirm
+  - Before opening a PR, to make sure CI will pass
+  - After editing config files (eslint.config.js, .prettierrc) to verify
+
+------------------------------------------------------------
+GIT WORKFLOW
+------------------------------------------------------------
+
+Start a new piece of work:
+  cd "C:\Users\HP\Documents\GitHub\trust pilot"
+  git checkout main
+  git pull
+  git checkout -b feature/what-you-are-building
+
+Stage and commit (Husky auto-runs lint-staged + commitlint):
+  git status
+  git add path/to/specific/file.js     (NEVER use git add . - too dangerous)
+  git commit -m "feat: add JWT verification middleware"
+
+Push and open PR:
+  git push origin feature/what-you-are-building
+  (Then open GitHub and click "Compare & pull request")
+
+WHEN to commit:
+  - After every meaningful change (one logical change per commit)
+  - Use small commits, not huge ones - easier to review and revert
+  - Commit message format MUST be: type: description
+    Types: feat, fix, chore, docs, test, refactor, style, ci
+  - Examples:
+      feat: add POST /api/auth/signup endpoint
+      fix: handle missing JWT_SECRET env var gracefully
+      docs: expand PIPELINE.md with troubleshooting section
+      test: add risk score edge case tests
+
+------------------------------------------------------------
+WORKTREES (DO NOT MIX FRONTEND AND BACKEND COMMITS)
+------------------------------------------------------------
+
+For backend work:
+  cd "C:\Users\HP\Documents\GitHub\trustbase-backend"
+  claude                     (this opens Claude Code in the backend worktree)
+
+For frontend work:
+  cd "C:\Users\HP\Documents\GitHub\trustbase-frontend"
+  claude                     (this opens Claude Code in the frontend worktree)
+
+For main repo (documentation, CI/CD, cross-cutting changes):
+  cd "C:\Users\HP\Documents\GitHub\trust pilot"
+  claude
+
+Rules:
+  - NEVER commit backend code from the frontend worktree, or vice versa
+  - Always run git status before committing to confirm the right branch
+  - If main gets new commits (merges), pull into your worktree:
+      git fetch origin
+      git rebase origin/main
+
+------------------------------------------------------------
+USEFUL ENVIRONMENT VERIFICATION
+------------------------------------------------------------
+
+Verify Node.js version (should be v20 or higher):
+  node --version
+
+Verify npm version:
+  npm --version
+
+Verify git is configured:
+  git config --get user.name
+  git config --get user.email
+
+Verify Husky hooks are installed:
+  cd "C:\Users\HP\Documents\GitHub\trust pilot"
+  git config core.hooksPath
+  (Should output: .husky/_)
+
+Test that commitlint blocks bad commit messages:
+  cd "C:\Users\HP\Documents\GitHub\trust pilot"
+  git commit --allow-empty -m "this is a bad message"
+  (Should be REJECTED by commitlint)
+  git commit --allow-empty -m "chore: test commitlint"
+  (Should SUCCEED)
+
+
+================================================================================
+PART 4 - TROUBLESHOOTING
+================================================================================
+
+Q: I get "Husky hook not firing on Windows"
+A: Run from trust pilot/ root:
+     rm -rf .husky
+     npx husky init
+   Then recreate the hook files (pre-commit and commit-msg).
+
+Q: ESLint complains about my Prettier formatting
+A: ESLint and Prettier are fighting. Make sure ESLint extends "prettier" LAST
+   in the extends array - that turns off any rules that conflict.
+
+Q: SonarCloud says coverage is 0%
+A: The backend test workflow uploads lcov.info as an artifact. If the upload
+   or download step fails, SonarCloud has no coverage file. Check the CI logs
+   for the "Upload coverage to artifacts" step in GitHub Actions.
+
+Q: Vercel deploy succeeded but the page is blank
+A: Open browser DevTools -> Console tab. Most common cause: VITE_API_URL env
+   var not set in Vercel, so frontend calls http://localhost:3000 which doesn't
+   exist in production. Fix in Vercel project settings, redeploy.
+
+Q: Railway deploy crashed immediately
+A: railway.app -> service -> Deployments -> click latest -> View Logs.
+   Most common causes:
+     - Missing required env var (e.g. JWT_SECRET)
+     - Supabase URL pointing at wrong project
+     - Start script can't find src/server.js
+
+Q: Paystack webhook isn't being received
+A: 1. Paystack dashboard -> Settings -> Webhooks -> check delivery log
+   2. Verify the URL has no typos and points at Railway (not localhost)
+   3. Your webhook handler must respond with 2xx. If it 500s, Paystack retries
+      3 times then gives up.
+   4. Check Railway logs for the request hitting /api/verify/webhook.
+
+Q: Sentry shows no errors but the app definitely crashes
+A: DSN typo. Verify SENTRY_DSN is set on Railway and VITE_SENTRY_DSN on Vercel.
+   Add a temporary /debug-sentry route to force an error and verify it lands
+   in Sentry. Delete the route after testing.
+
+Q: commitlint rejects all my messages
+A: Read the rejection text carefully - it tells you exactly which rule failed.
+   Most common: missing the ":", type not in the allowed list (must be one of
+   feat/fix/chore/docs/test/refactor/style/ci), or description starts with
+   a capital letter.
+
+Q: "MCP server failed to start"
+A: Open a terminal and run the exact command from your config:
+     npx -y @postman/mcp-server
+   If it errors, the package name is wrong or your network can't reach npm.
+
+Q: I added an MCP and Claude doesn't see it
+A: You edited settings.json while Claude Code was running. Servers only
+   register at startup. Close all Claude Code windows, then reopen.
+
+
+================================================================================
+END OF SETUP GUIDE
+================================================================================
+
+Once you finish every section in PART 2, your TrustBase prototype is:
+  - Deployed to Vercel + Railway
+  - Connected to Supabase (real users + reports)
+  - Sending SMS OTPs via Twilio
+  - Accepting payments via Paystack (test mode)
+  - Monitored by Sentry
+  - Quality-gated by SonarCloud
+  - Protected by branch rules
+  - Auto-deployed on every push to main
+
+That is the entire prototype phase done.

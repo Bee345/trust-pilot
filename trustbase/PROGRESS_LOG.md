@@ -28,217 +28,194 @@ Complete read-through of all frontend and backend source files.
 - All directories empty: controllers/, models/, middlewares/, services/,
   sockets/, utils/, config/
 
-### Bugs Found
+### Bugs Found and Fixed
 1. ESM/CJS MISMATCH (CRITICAL): app.js and server.js use ES Module syntax
-   (`import/export`) but package.json declares "type": "commonjs".
-   The app will crash immediately when started. Must fix before any other work.
+   in a CommonJS project — converted to require()/module.exports.
+2. MISSING ROUTE FILES: created in Phase 8 below.
 
-2. MISSING ROUTE FILES: routes/index.js requires authRoutes, userRoutes,
-   reviewRoutes, companyRoutes — none exist yet. Will throw on startup.
+### Files Created Today (planning/process docs)
+- CLAUDE.md, IMPLEMENTATION_PLAN.md, PIPELINE.md, TASK_MODEL_MAP.txt,
+  PROCEDURES.md, BACKEND_RULES.md, LEARN.md, PROGRESS_LOG.md
+- .github/workflows/ci.yml, deploy.yml (CI/CD scaffolding — secrets NOT YET set)
+- commitlint.config.js, sonar-project.properties
 
-### Infrastructure Identified (from .env.example)
-- Database: Supabase (PostgreSQL) — service role key bypasses RLS
-- Auth: JWT tokens (jsonwebtoken) + bcrypt password hashing
-- SMS/OTP: Twilio (Nigerian numbers use +234 prefix)
-- Payments: Paystack (kobo denomination — ₦2,000 = 200,000 kobo)
-- Real-time: Socket.io on separate SOCKET_PORT (3001)
-- Error monitoring: Sentry (DSN env var)
+---
 
-### Files Created Today
-- trustbase/CLAUDE.md — Project rules, architecture, Nigerian context
-- trustbase/IMPLEMENTATION_PLAN.md — Full 11-phase backend build plan
-- trustbase/PIPELINE.md — Dev-to-production setup guide
-- trustbase/TASK_MODEL_MAP.txt — Claude model allocation guide
-- trustbase/PROCEDURES.md — Step-by-step procedures from scratch to prod
-- trustbase/BACKEND_RULES.md — Backend-specific coding rules
-- trustbase/LEARN.md — Educational glossary of all technologies used
-- trustbase/PROGRESS_LOG.md — This file
-- .github/workflows/ci.yml — GitHub Actions CI pipeline
-- .github/workflows/deploy.yml — GitHub Actions deployment pipeline
-- commitlint.config.js — Conventional commit enforcement
-- sonar-project.properties — SonarCloud config
+## [2026-05-07] — Phase 1 Complete: Config Layer
 
-### Code Fixes Made Today
-- backend/src/app.js: Converted from ESM (import/export) to CommonJS (require/module.exports)
-- backend/src/server.js: Same fix
-- Updated .gitignore to ensure .env files are excluded
+### Files Created
+- backend/src/config/supabase.js — Supabase client (createClient with service key)
+- backend/src/config/twilio.js — Twilio client with graceful null-return if env missing
+- backend/src/config/paystack.js — Axios instance with Authorization header
+
+### Verified
+- npm run dev starts without errors
+- GET /health returns { status: 'ok' }
 
 ### Next Steps
-→ Phase 1: Create backend/src/config/supabase.js, twilio.js, paystack.js
-→ Phase 2: Run database schema SQL in Supabase dashboard
-→ Prerequisite: Fill in backend/.env with real Supabase/Twilio/Paystack credentials
+→ Phase 2: Database schema (user-action required in Supabase Dashboard)
 
 ---
 
-## [DATE] — Phase 1 Complete: Config Layer
+## [2026-05-08] — Phase 2: Database Schema — STATUS UNKNOWN (User Action Required)
 
-### What Was Done
-- Created backend/src/config/supabase.js — Supabase client initialized
-- Created backend/src/config/twilio.js — Twilio client (graceful degradation if missing)
-- Created backend/src/config/paystack.js — Paystack axios client
+### What Should Be Done
+Run the SQL in IMPLEMENTATION_PLAN.md Phase 2 inside the Supabase SQL Editor.
 
-### Tested
-- npm run dev → server starts without errors
-- GET /health → returns { status: 'ok' }
-
-### Next Steps → Phase 2: Database schema
-
----
-
-## [DATE] — Phase 2 Complete: Database Schema
-
-### Tables Created in Supabase
+### Tables Required
 - users (id, name, phone, password_hash, is_verified, trust_points, created_at)
 - reports (id, reporter_id, phone, business_name, scam_type, description,
            amount_lost, anonymous, status, risk_level, created_at)
 - report_upvotes (report_id, user_id — composite PK)
 - verifications (id, user_id, type, status, paystack_ref, amount_paid, created_at)
+- Function: increment_trust_points(user_id, points)
 
-### Supabase SQL Function Created
-- increment_trust_points(user_id, points) — atomic counter update
+### Verification Needed From User
+- Confirm SQL has been executed in Supabase Dashboard
+- Confirm RLS enabled on all 4 tables
+- Confirm `increment_trust_points` function exists
 
-### RLS Enabled
-- Row Level Security enabled on all 4 tables
-- Backend uses service role key (bypasses RLS — correct and intentional)
-
-### Next Steps → Phase 3: Utils layer
+### Risk If Skipped
+The backend will start fine but every model query (signup, login, report submission,
+verification) will return a "relation does not exist" error from Supabase. The
+frontend will appear to work locally but every action will fail.
 
 ---
 
-## [DATE] — Phase 3 Complete: Utils Layer
+## [2026-05-09] — Phase 3 Complete: Utils Layer
 
 ### Files Created
 - backend/src/utils/response.js — success() and error() HTTP helpers
-- backend/src/utils/validators.js — Zod schemas for signup, login, report, verification
+- backend/src/utils/validators.js — Zod schemas (signup, login, report, verification)
+  with Nigerian phone regex /^(0[7-9][0-1]\d{8})$/
 - backend/src/utils/risk.js — computeRiskScore() pure function
-- backend/src/utils/otp.js — generateOTP() and sendOTP() with Twilio
+- backend/src/utils/otp.js — generateOTP() and Twilio-backed sendOTP()
 
-### Unit Tests Written
-- validators.test.js — all schema happy/sad paths
-- risk.test.js — score calculation for different report combinations
-
-### Next Steps → Phase 4: Middlewares
+### Outstanding
+- Unit tests for validators and risk score (Phase 11)
 
 ---
 
-## [DATE] — Phase 4 Complete: Middleware Layer
+## [2026-05-09] — Phase 4 Complete: Middleware Layer
 
 ### Files Created
-- backend/src/middlewares/auth.js — verifyToken + optionalAuth
+- backend/src/middlewares/auth.js — verifyToken + optionalAuth using jsonwebtoken
 - backend/src/middlewares/validate.js — Zod schema validation factory
 - backend/src/middlewares/rateLimit.js — auth (5/15min), search (60/min), report (10/hr)
-
-### Next Steps → Phase 5: Models
+- backend/src/middlewares/security.js — helmet, strict CORS, HPP, requestId
+  (added beyond the original Phase 4 spec — see CLAUDE.md "Newly Added Files")
 
 ---
 
-## [DATE] — Phase 5 Complete: Model Layer
+## [2026-05-10] — Phase 5 Complete: Model Layer
 
 ### Files Created
-- backend/src/models/user.model.js — createUser, findBy*, updateUser, incrementTrustPoints
-- backend/src/models/report.model.js — createReport, getReportsByPhone, getRecentReports, upvote
-- backend/src/models/verification.model.js — createVerification, updateStatus, findByRef
-- backend/src/models/company.model.js — searchEntities, getVerifiedUsers, getById
+- backend/src/models/user.model.js
+- backend/src/models/report.model.js
+- backend/src/models/verification.model.js
+- backend/src/models/company.model.js
 
-### Next Steps → Phase 6: Services
+All queries strip password_hash. PGRST116 (not found) returns null instead of throwing.
 
 ---
 
-## [DATE] — Phase 6 Complete: Service Layer
+## [2026-05-11] — Phase 6 Complete: Service Layer
 
 ### Files Created
-- backend/src/services/auth.service.js — signup(), login(), generateToken()
-- backend/src/services/report.service.js — submitReport(), searchEntity()
-- backend/src/services/verification.service.js — initiateVerification(), handlePaystackWebhook()
+- backend/src/services/auth.service.js — signup, login, generateToken
+- backend/src/services/report.service.js — submitReport, searchEntity
+- backend/src/services/verification.service.js — initiateVerification,
+  handlePaystackWebhook (HMAC-SHA512 on raw body), approveVerification
 
-### Next Steps → Phase 7+8: Controllers + Routes
+### Architecture Additions
+- backend/src/errors/AppError.js — custom error class + factory functions
+  (notFound, unauthorized, forbidden, conflict, badRequest, paymentRequired)
+- backend/src/constants/index.js — magic numbers/strings centralized
 
 ---
 
-## [DATE] — Phase 7+8 Complete: Controllers + Routes
+## [2026-05-12] — Phases 7 + 8 Complete: Controllers + Routes
 
 ### Files Created
-- backend/src/controllers/auth.controller.js
-- backend/src/controllers/user.controller.js
-- backend/src/controllers/review.controller.js
-- backend/src/controllers/verification.controller.js
-- backend/src/routes/authRoutes.js
-- backend/src/routes/userRoutes.js
-- backend/src/routes/reviewRoutes.js
-- backend/src/routes/companyRoutes.js
-- backend/src/routes/verifyRoutes.js
+Controllers (backend/src/controllers/):
+- auth.controller.js, user.controller.js, review.controller.js,
+  verification.controller.js, company.controller.js (added beyond spec)
 
-### Manual Tests Passed (curl)
-- POST /api/auth/signup → 201
-- POST /api/auth/login → 200 with JWT
-- GET /api/users/me with token → 200
-- POST /api/reviews → 201
-- GET /api/reviews → 200 with paginated list
+Routes (backend/src/routes/):
+- authRoutes.js, userRoutes.js, reviewRoutes.js, companyRoutes.js, verifyRoutes.js
+- index.js wires them all to /api/auth, /api/users, /api/reviews,
+  /api/companies, /api/verify
 
-### Next Steps → Phase 9: Socket.io
+### Outstanding
+- No automated tests for any endpoint yet (Phase 11)
+- Manual smoke tests not yet run (waiting on Phase 2 DB schema confirmation)
 
 ---
 
-## [DATE] — Phase 9 Complete: Socket.io
+## [2026-05-13] — Phase 9 Complete: Socket.io
 
 ### Files Created
 - backend/src/sockets/index.js — initSockets, emitNewReport, emitVerificationUpdate
+- Wired into server.js — Socket.io shares the HTTP server (port 3000)
 
-### Next Steps → Phase 10: Frontend integration
+### Outstanding
+- Frontend Socket.io client not yet wired (Phase 10i)
 
 ---
 
-## [DATE] — Phase 10 Complete: Frontend Integration
+## [2026-05-18] — Phase 10 IN PROGRESS: Frontend Integration
 
-### Files Created / Modified
-- trustbase/src/lib/api.js — HTTP client wrapper with JWT injection
-- trustbase/src/lib/auth.js — Token storage helpers
-- trustbase/src/.env — VITE_API_URL pointing to localhost:3000
-- Login.jsx — real POST /api/auth/login
-- Signup.jsx — real POST /api/auth/signup
-- App.jsx — token restoration on mount
-- Home.jsx — real GET /api/reviews
-- SearchResults.jsx — real GET /api/reviews/search?q=
+### Done So Far
+- trustbase/src/lib/api.js — fetch wrapper with JWT injection + 401 redirect
+
+### In Progress (UNCOMMITTED CHANGES on main branch as of 2026-05-18)
+- trustbase/src/pages/Home.jsx — partially wired to GET /api/reviews (uses useEffect,
+  reads user from localStorage for initials)
+- trustbase/src/pages/SearchResults.jsx — partially wired to GET /api/companies/search
+
+### Outstanding (Phase 10 sub-tasks not yet started)
+- Login.jsx — replace setTimeout mock with real POST /api/auth/login
+- Signup.jsx — replace setTimeout mock with real POST /api/auth/signup
+- App.jsx — useEffect to restore auth from localStorage on mount
 - ReportScam.jsx — real POST /api/reviews
 - ReportsList.jsx — real GET /api/reviews with pagination
 - GetVerified.jsx — real POST /api/verify/initiate + Paystack redirect
+- VerificationStatus.jsx — real GET /api/verify/status
+- MyReports.jsx — real GET /api/users/me/reports
+- Profile.jsx — real GET/PUT /api/users/me
+- Notifications.jsx — Socket.io client + real notification feed
+- Protected route guard component
 
-### Mock data removed from:
-(list pages as you update them)
+### Workflow Notes
+- Current uncommitted edits are on main branch, NOT in feature/frontend worktree
+  — this violates the worktree rule in CLAUDE.md.
+- These changes need to be moved to feature/frontend before continuing.
 
-### Next Steps → Phase 11: Tests
-
----
-
-## [DATE] — Phase 11 Complete: Tests
-
-### Coverage: XX%
-### Test files created:
-- __tests__/auth.test.js
-- __tests__/report.test.js
-- __tests__/risk.unit.test.js
-- __tests__/validators.unit.test.js
-
-### Next Steps → Phase 12: Pipeline (see PIPELINE.md)
+### Next Steps
+→ Move uncommitted changes to feature/frontend worktree
+→ Continue Phase 10 sub-tasks (Login.jsx + Signup.jsx + App.jsx are highest priority)
 
 ---
 
-## [DATE] — Pipeline Complete
+## TODO: Future Phase Entries (Update When Completed)
 
-### What Was Set Up
-- ESLint + Prettier in both frontend and backend
-- Husky pre-commit hooks (lint-staged)
-- commitlint (conventional commits enforced)
-- SonarCloud connected to GitHub repo
-- Sentry DSN configured in both frontend and backend
-- GitHub Actions CI passing (lint + test + SonarCloud)
-- GitHub Actions deploy passing
-- Frontend live at: https://[your-domain].vercel.app
-- Backend live at: https://[your-domain].railway.app
+### Phase 11 — Tests
+- backend/src/__tests__/auth.test.js — Supertest integration tests
+- backend/src/__tests__/report.test.js — Supertest integration tests
+- backend/src/__tests__/risk.unit.test.js — pure function tests
+- backend/src/__tests__/validators.unit.test.js — Zod schema tests
+- Target coverage: > 70% (SonarCloud quality gate threshold)
 
-### Branch protection rules enabled on main
-- Require CI to pass
-- Require 1 PR review
-- Require SonarQube quality gate
-
-### Project is now PRODUCTION READY
+### Phase 12 — Pipeline (Cloud Connection)
+NONE of the following has been done yet — see PIPELINE.md for the full walkthrough:
+- ESLint + Prettier wiring beyond the install (rule files, VS Code settings)
+- Husky pre-commit + commit-msg hooks installed and tested
+- SonarCloud account created + SONAR_TOKEN added to GitHub Secrets
+- Sentry account created + DSNs wired into app.js and main.jsx
+- Test Supabase project created (separate from production)
+- Vercel account + project linked + VERCEL_* secrets added
+- Railway account + project linked + RAILWAY_TOKEN added
+- All other GitHub Secrets (TEST_*, VITE_*, FRONTEND_URL) added
+- Branch protection rules on main
+- First successful production deploy
+- Health check passes against live backend

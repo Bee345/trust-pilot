@@ -1,24 +1,47 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit2, Camera, MapPin, Phone, Mail, ShieldCheck, Star, FileText, Check } from 'lucide-react';
+import { api } from '../lib/api';
 
 export default function Profile() {
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({
-    name: 'John Doe',
-    phone: '08012345678',
-    email: 'johndoe@email.com',
-    location: 'Lagos, Nigeria',
-    bio: 'Protecting myself and my community from online scams 🛡️',
+    name: '',
+    phone: '',
+    email: '',
+    location: '',
+    bio: '',
   });
 
-  const handleSave = (e) => {
+  useEffect(() => {
+    api.get('/api/users/me')
+      .then(data => {
+        const u = data?.user ?? {};
+        setForm(f => ({
+          ...f,
+          name: u.name || '',
+          phone: u.phone || '',
+        }));
+      })
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async (e) => {
     e.preventDefault();
-    setEditing(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setError('');
+    try {
+      await api.put('/api/users/me', { name: form.name, phone: form.phone });
+      setEditing(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return (
@@ -48,6 +71,21 @@ export default function Profile() {
         <div style={{ position: 'absolute', left: '20%', bottom: '-20px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
       </div>
 
+      {loading && (
+        <div style={{ textAlign: 'center', padding: '20px', color: 'white', fontSize: '13px', position: 'absolute', top: '70px', left: 0, right: 0, zIndex: 50 }}>
+          Loading profile...
+        </div>
+      )}
+      {error && (
+        <div style={{
+          background: '#FFF5F5', border: '1px solid #FFC5C5', borderRadius: '10px',
+          padding: '10px 14px', fontSize: '13px', color: '#C62828',
+          margin: '12px 20px',
+        }}>
+          {error}
+        </div>
+      )}
+
       {/* Profile Info */}
       <div style={{ background: 'white', padding: '0 20px 20px', position: 'relative' }}>
         {/* Avatar */}
@@ -62,7 +100,7 @@ export default function Profile() {
               fontSize: '32px', fontWeight: '900', color: 'white',
               boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
             }}>
-              JD
+              {form.name ? form.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '—'}
             </div>
             <button style={{
               position: 'absolute', bottom: '-4px', right: '-4px',

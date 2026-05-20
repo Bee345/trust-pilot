@@ -1,39 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Bell, ShieldCheck, AlertTriangle, TrendingUp, ChevronRight, Star, Zap, Users, Shield } from 'lucide-react';
-
-const recentSearches = [
-  { id: 1, query: '08034567890', risk: 'high', label: 'High Risk' },
-  { id: 2, query: 'Lagos Gadgets Store', risk: 'safe', label: 'Verified' },
-  { id: 3, query: '07025678901', risk: 'medium', label: 'Caution' },
-];
-
-const recentReports = [
-  {
-    id: 1, name: 'Fraudulent iPhone Seller',
-    amount: '₦220,000', time: '2 hours ago',
-    type: 'Online Scam', risk: 'high',
-  },
-  {
-    id: 2, name: 'Fake Loan Officer',
-    amount: '₦50,000', time: '5 hours ago',
-    type: 'Financial Fraud', risk: 'high',
-  },
-  {
-    id: 3, name: 'Ada Boutique',
-    amount: '₦12,000', time: '1 day ago',
-    type: 'Product Scam', risk: 'medium',
-  },
-];
+import { Search, Bell, ShieldCheck, AlertTriangle, Zap } from 'lucide-react';
+import { api } from '../lib/api';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
+  const [recentReports, setRecentReports] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  const user = JSON.parse(localStorage.getItem('trustbase_user') || '{}');
+  const initials = user.name
+    ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    : 'Me';
+
+  useEffect(() => {
+    api.get('/api/reviews?limit=3')
+      .then(res => {
+        const list = Array.isArray(res) ? res : (res?.reports ?? []);
+        setRecentReports(list);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
-      navigate('/search-results');
+      navigate('/search-results', { state: { query: searchQuery.trim() } });
     }
   };
 
@@ -41,9 +35,20 @@ export default function Home() {
     if (e.key === 'Enter') handleSearch();
   };
 
+  const riskColor = (level) => level === 'HIGH' ? '#E53935' : level === 'MEDIUM' ? '#FF9800' : '#00C853';
+  const riskBg   = (level) => level === 'HIGH' ? '#FFF5F5' : level === 'MEDIUM' ? '#FFF8F0' : '#F0FFF4';
+
+  const timeAgo = (dateStr) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const h = Math.floor(diff / 3600000);
+    if (h < 1) return 'Just now';
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
+  };
+
   return (
     <div style={{ background: '#F5F6FA', minHeight: '100vh' }}>
-      
+
       {/* Header */}
       <div style={{
         background: 'linear-gradient(135deg, #E53935 0%, #C62828 100%)',
@@ -51,7 +56,6 @@ export default function Home() {
         position: 'relative',
         overflow: 'hidden',
       }}>
-        {/* Background decoration */}
         <div style={{
           position: 'absolute', top: '-50px', right: '-50px',
           width: '200px', height: '200px', borderRadius: '50%',
@@ -66,12 +70,14 @@ export default function Home() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', position: 'relative' }}>
           <div>
             <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: '12px', marginBottom: '2px' }}>Good afternoon 👋</p>
-            <h1 style={{ color: 'white', fontSize: '20px', fontWeight: '800' }}>TrustBase</h1>
+            <h1 style={{ color: 'white', fontSize: '20px', fontWeight: '800' }}>
+              {user.name ? user.name.split(' ')[0] : 'TrustBase'}
+            </h1>
           </div>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <button onClick={() => navigate('/notifications')} style={{
               width: '38px', height: '38px',
-              background: 'rgba(255,255,255,0.15)', 
+              background: 'rgba(255,255,255,0.15)',
               borderRadius: '50%', border: 'none',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer', backdropFilter: 'blur(10px)',
@@ -92,15 +98,15 @@ export default function Home() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontWeight: '800', fontSize: '14px', color: 'white',
             }}>
-              JD
+              {initials}
             </div>
           </div>
         </div>
 
         {/* Search Box */}
-        <div style={{ 
-          background: 'white', 
-          borderRadius: '16px', 
+        <div style={{
+          background: 'white',
+          borderRadius: '16px',
           padding: '4px',
           boxShadow: '0 8px 40px rgba(0,0,0,0.15)',
           position: 'relative',
@@ -118,31 +124,21 @@ export default function Home() {
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
               style={{
-                flex: 1,
-                border: 'none',
+                flex: 1, border: 'none',
                 padding: '14px 16px 14px 46px',
-                borderRadius: '14px',
-                fontSize: '14px',
-                outline: 'none',
-                color: '#1A2B3C',
-                fontFamily: 'Inter, sans-serif',
-                background: 'transparent',
+                borderRadius: '14px', fontSize: '14px',
+                outline: 'none', color: '#1A2B3C',
+                fontFamily: 'Inter, sans-serif', background: 'transparent',
               }}
             />
             <button
               onClick={handleSearch}
               style={{
                 background: 'linear-gradient(135deg, #E53935, #C62828)',
-                border: 'none',
-                borderRadius: '12px',
-                padding: '10px 16px',
-                cursor: 'pointer',
-                color: 'white',
-                fontWeight: '700',
-                fontSize: '13px',
-                whiteSpace: 'nowrap',
-                margin: '4px',
-                transition: 'all 0.2s ease',
+                border: 'none', borderRadius: '12px',
+                padding: '10px 16px', cursor: 'pointer',
+                color: 'white', fontWeight: '700', fontSize: '13px',
+                whiteSpace: 'nowrap', margin: '4px',
               }}
             >
               Search
@@ -153,26 +149,19 @@ export default function Home() {
 
       {/* Stats Bar */}
       <div style={{
-        background: 'white',
-        margin: '0',
-        padding: '16px 20px',
-        display: 'flex',
-        borderBottom: '1px solid #ECEFF1',
+        background: 'white', margin: '0', padding: '16px 20px',
+        display: 'flex', borderBottom: '1px solid #ECEFF1',
       }}>
         {[
-          { value: '12,450+', label: 'Reports', color: '#E53935', emoji: '📊' },
-          { value: '3,200+', label: 'Flagged', color: '#FF9800', emoji: '🚩' },
-          { value: '850+', label: 'Verified Biz', color: '#00C853', emoji: '✅' },
+          { value: '12,450+', label: 'Reports', color: '#E53935' },
+          { value: '3,200+', label: 'Flagged', color: '#FF9800' },
+          { value: '850+', label: 'Verified Biz', color: '#00C853' },
         ].map((stat, i) => (
           <React.Fragment key={stat.label}>
             {i > 0 && <div style={{ width: '1px', background: '#ECEFF1', margin: '0 4px' }}/>}
             <div style={{ flex: 1, textAlign: 'center' }}>
-              <div style={{ fontSize: '16px', fontWeight: '800', color: stat.color }}>
-                {stat.value}
-              </div>
-              <div style={{ fontSize: '11px', color: '#8896A5', fontWeight: '500', marginTop: '2px' }}>
-                {stat.label}
-              </div>
+              <div style={{ fontSize: '16px', fontWeight: '800', color: stat.color }}>{stat.value}</div>
+              <div style={{ fontSize: '11px', color: '#8896A5', fontWeight: '500', marginTop: '2px' }}>{stat.label}</div>
             </div>
           </React.Fragment>
         ))}
@@ -183,110 +172,95 @@ export default function Home() {
         <h2 style={{ fontSize: '15px', fontWeight: '700', color: '#1A2B3C', marginBottom: '12px' }}>Quick Actions</h2>
         <div className="grid-2">
           {[
-            { 
-              icon: '⚠️', title: 'Report a Scam', desc: 'Flag suspicious activity',
-              bg: '#FFF5F5', border: '#FFE0E0', action: '/report-scam',
-            },
-            { 
-              icon: '🔍', title: 'Bulk Check', desc: 'Search multiple numbers',
-              bg: '#F0F4FF', border: '#D6E0FF', action: '/search-results',
-            },
-            { 
-              icon: '✅', title: 'Get Verified', desc: 'Build your trust score',
-              bg: '#F0FFF4', border: '#C6F6D5', action: '/get-verified',
-            },
-            { 
-              icon: '📋', title: 'My Reports', desc: 'View your submissions',
-              bg: '#FFFAF0', border: '#FEEBC8', action: '/my-reports',
-            },
+            { icon: '⚠️', title: 'Report a Scam', desc: 'Flag suspicious activity', action: '/report-scam' },
+            { icon: '🔍', title: 'Bulk Check', desc: 'Search multiple numbers', action: '/search-results' },
+            { icon: '✅', title: 'Get Verified', desc: 'Build your trust score', action: '/get-verified' },
+            { icon: '📋', title: 'My Reports', desc: 'View your submissions', action: '/my-reports' },
           ].map(item => (
             <div
               key={item.title}
               onClick={() => navigate(item.action)}
               style={{
-                background: item.bg,
-                border: `1.5px solid ${item.border}`,
-                borderRadius: '16px',
-                padding: '16px',
+                background: 'white', border: '1.5px solid #ECEFF1',
+                borderRadius: '16px', padding: '16px',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
               }}
               onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
               onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
             >
               <div style={{ fontSize: '24px', marginBottom: '8px' }}>{item.icon}</div>
-              <div style={{ fontSize: '13px', fontWeight: '700', color: '#1A2B3C', marginBottom: '2px' }}>
-                {item.title}
-              </div>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#1A2B3C', marginBottom: '2px' }}>{item.title}</div>
               <div style={{ fontSize: '11px', color: '#8896A5' }}>{item.desc}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Recent Activity Feed */}
+      {/* Latest Reports */}
       <div style={{ padding: '20px 20px 0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <h2 style={{ fontSize: '15px', fontWeight: '700', color: '#1A2B3C' }}>Latest Reports</h2>
-          <span 
-            onClick={() => navigate('/reports-list')}
-            style={{ fontSize: '13px', color: '#E53935', fontWeight: '600', cursor: 'pointer' }}
-          >
+          <span onClick={() => navigate('/reports-list')} style={{ fontSize: '13px', color: '#E53935', fontWeight: '600', cursor: 'pointer' }}>
             See all
           </span>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {recentReports.map((report, idx) => (
-            <div
-              key={report.id}
-              onClick={() => navigate('/reports-list')}
-              style={{
-                background: 'white',
-                borderRadius: '14px',
-                padding: '14px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                border: '1px solid #ECEFF1',
-                transition: 'all 0.2s ease',
-                animation: `fadeInUp 0.4s ease ${idx * 0.1}s both`,
-              }}
-            >
-              <div style={{
-                width: '44px', height: '44px',
-                borderRadius: '12px',
-                background: report.risk === 'high' ? '#FFF5F5' : '#FFF8F0',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-              }}>
-                <AlertTriangle size={20} color={report.risk === 'high' ? '#E53935' : '#FF9800'} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <p style={{ fontSize: '13px', fontWeight: '700', color: '#1A2B3C', margin: 0, marginBottom: '2px' }}>
-                    {report.name}
-                  </p>
-                  <span style={{
-                    fontSize: '10px', fontWeight: '700',
-                    padding: '2px 8px', borderRadius: '20px',
-                    background: report.risk === 'high' ? '#FFF5F5' : '#FFF8F0',
-                    color: report.risk === 'high' ? '#E53935' : '#FF9800',
-                    flexShrink: 0, marginLeft: '8px',
-                  }}>
-                    {report.risk === 'high' ? 'HIGH RISK' : 'CAUTION'}
-                  </span>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '24px', color: '#8896A5', fontSize: '13px' }}>Loading...</div>
+        ) : recentReports.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '24px', color: '#8896A5', fontSize: '13px' }}>No reports yet</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {recentReports.map((report) => (
+              <div
+                key={report.id}
+                onClick={() => navigate('/reports-list')}
+                style={{
+                  background: 'white', borderRadius: '14px',
+                  padding: '14px 16px',
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                  border: '1px solid #ECEFF1',
+                }}
+              >
+                <div style={{
+                  width: '44px', height: '44px', borderRadius: '12px',
+                  background: riskBg(report.risk_level),
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  <AlertTriangle size={20} color={riskColor(report.risk_level)} />
                 </div>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <span style={{ fontSize: '12px', color: '#E53935', fontWeight: '600' }}>{report.amount}</span>
-                  <span style={{ fontSize: '12px', color: '#B0BEC5' }}>{report.time}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <p style={{ fontSize: '13px', fontWeight: '700', color: '#1A2B3C', margin: 0, marginBottom: '2px' }}>
+                      {report.business_name || report.phone}
+                    </p>
+                    <span style={{
+                      fontSize: '10px', fontWeight: '700',
+                      padding: '2px 8px', borderRadius: '20px',
+                      background: riskBg(report.risk_level),
+                      color: riskColor(report.risk_level),
+                      flexShrink: 0, marginLeft: '8px',
+                    }}>
+                      {report.risk_level || 'UNKNOWN'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    {report.amount_lost && (
+                      <span style={{ fontSize: '12px', color: '#E53935', fontWeight: '600' }}>
+                        ₦{Number(report.amount_lost).toLocaleString()} lost
+                      </span>
+                    )}
+                    <span style={{ fontSize: '12px', color: '#B0BEC5' }}>
+                      {report.created_at ? timeAgo(report.created_at) : ''}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Trust Banner */}
@@ -295,14 +269,9 @@ export default function Home() {
           onClick={() => navigate('/get-verified')}
           style={{
             background: 'linear-gradient(135deg, #1A2B3C 0%, #0D1B2A 100%)',
-            borderRadius: '18px',
-            padding: '20px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            cursor: 'pointer',
-            position: 'relative',
-            overflow: 'hidden',
+            borderRadius: '18px', padding: '20px',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            cursor: 'pointer', position: 'relative', overflow: 'hidden',
           }}
         >
           <div style={{
@@ -311,7 +280,7 @@ export default function Home() {
             background: 'rgba(229,57,53,0.15)',
           }}/>
           <div>
-            <div style={{ 
+            <div style={{
               display: 'inline-flex', alignItems: 'center', gap: '6px',
               background: 'rgba(229,57,53,0.2)', borderRadius: '20px',
               padding: '3px 10px', marginBottom: '8px',
@@ -337,7 +306,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Spacer for bottom nav */}
       <div style={{ height: '100px' }}/>
     </div>
   );

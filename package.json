@@ -1,0 +1,23 @@
+{
+  "name": "trust-pilot-monorepo",
+  "private": true,
+  "scripts": {
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.0",
+    "lint-staged": "^15.0.0",
+    "@commitlint/cli": "^19.0.0",
+    "@commitlint/config-conventional": "^19.0.0"
+  },
+  "lint-staged": {
+    "trustbase/src/**/*.{js,jsx}": [
+      "cd trustbase && npx eslint --fix",
+      "cd trustbase && npx prettier --write"
+    ],
+    "trustbase/backend/src/**/*.js": [
+      "cd trustbase/backend && npx eslint --fix",
+      "cd trustbase/backend && npx prettier --write"
+    ]
+  }
+}

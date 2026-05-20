@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Briefcase, Check, Lock, ShieldCheck, Star, ChevronRight } from 'lucide-react';
+import { api } from '../lib/api';
 
 export default function GetVerified() {
   const navigate = useNavigate();
   const [type, setType] = useState('individual');
   const [step, setStep] = useState('select'); // 'select' | 'payment' | 'success'
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const plans = {
     individual: {
@@ -42,12 +44,21 @@ export default function GetVerified() {
 
   const plan = plans[type];
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
+    setError('');
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const res = await api.post('/api/verify/initiate', { type });
+      if (res?.paymentUrl) {
+        window.location.href = res.paymentUrl;
+        return;
+      }
       setStep('success');
-    }, 2000);
+    } catch (err) {
+      setError(err.message || 'Could not start verification');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (step === 'success') {
@@ -142,6 +153,15 @@ export default function GetVerified() {
               </div>
             ))}
           </div>
+
+          {error && (
+            <div style={{
+              background: '#FFF5F5', border: '1px solid #FFC5C5', borderRadius: '10px',
+              padding: '12px 14px', fontSize: '13px', color: '#C62828', marginBottom: '12px',
+            }}>
+              {error}
+            </div>
+          )}
 
           <button
             className="btn-primary"

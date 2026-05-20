@@ -1,8 +1,17 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const Sentry = require('@sentry/node');
 
 dotenv.config();
+
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+    tracesSampleRate: 1.0,
+  });
+}
 
 // Security middleware — must be loaded before app is used
 const {
@@ -49,9 +58,13 @@ app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });
 });
 
+// Sentry v8+ auto-instruments Express via Sentry.setupExpressErrorHandler.
+// Must be installed AFTER all routes and BEFORE the custom error handler.
+if (process.env.SENTRY_DSN) {
+  Sentry.setupExpressErrorHandler(app);
+}
+
 // ─── Global Error Handler (must be last, 4 params) ───────────────────────────
-// Handles both operational errors (AppError) and unexpected errors (bugs).
-// Unexpected errors are forwarded to Sentry via the requestHandler above.
 app.use((err, req, res, _next) => {
   const statusCode = err.statusCode || err.status || 500;
   const isOperational = err.isOperational === true;

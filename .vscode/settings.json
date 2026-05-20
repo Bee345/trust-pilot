@@ -1,3 +1,9 @@
 {
-  "typescript.tsserver.ignoredCodes": [80001]
+  "typescript.tsserver.ignoredCodes": [80001],
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.workingDirectories": ["./trustbase", "./trustbase/backend"]
 }

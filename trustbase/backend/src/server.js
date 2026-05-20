@@ -8,5 +8,6 @@ const server = http.createServer(app);
 initSockets(server);
 
 server.listen(PORT, () => {
+  // eslint-disable-next-line no-console
   console.log(`TrustBase API running on port ${PORT}`);
 });

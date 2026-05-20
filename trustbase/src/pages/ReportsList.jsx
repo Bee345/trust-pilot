@@ -1,74 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Filter, AlertTriangle, Search, MapPin, Clock, ChevronRight } from 'lucide-react';
-
-const REPORTS = [
-  {
-    id: 1,
-    title: 'Fraudulent iPhone Seller',
-    number: '08012345678',
-    amount: '₦220,000',
-    description: 'Paid for iPhone 13 Pro, seller blocked me immediately. Same account has been scamming people since 2023.',
-    time: '2 days ago',
-    location: 'Lagos',
-    risk: 'high',
-    type: 'Online Scam',
-    upvotes: 24,
-    image: null,
-  },
-  {
-    id: 2,
-    title: 'Clothing Vendor Scam',
-    number: '07098765432',
-    amount: '₦45,000',
-    description: 'Ordered branded clothes, made full payment. Vendor delivered wrong sizes and refuses refund. Went off-grid after.',
-    time: '1 week ago',
-    location: 'Abuja',
-    risk: 'high',
-    type: 'Product Scam',
-    upvotes: 18,
-    image: null,
-  },
-  {
-    id: 3,
-    title: 'POS Agent Fraud',
-    number: '09023456789',
-    amount: '₦15,000',
-    description: 'Pretended to be a POS agent near a busy market, collected N15,000 cash but never funded my account.',
-    time: '2 weeks ago',
-    location: 'Port Harcourt',
-    risk: 'medium',
-    type: 'POS Fraud',
-    upvotes: 11,
-    image: null,
-  },
-  {
-    id: 4,
-    title: 'Fake Loan App Operator',
-    number: '08056781234',
-    amount: '₦8,000',
-    description: 'Collected processing fee of N8,000 for a loan that was never disbursed. Blocked my number afterward.',
-    time: '3 weeks ago',
-    location: 'Kano',
-    risk: 'medium',
-    type: 'Loan Scam',
-    upvotes: 9,
-    image: null,
-  },
-  {
-    id: 5,
-    title: 'Fake Recruitment Agency',
-    number: '08087654321',
-    amount: '₦35,000',
-    description: 'Promised overseas job placement after collecting a processing fee. The job offer was completely fake.',
-    time: '1 month ago',
-    location: 'Ibadan',
-    risk: 'high',
-    type: 'Job Scam',
-    upvotes: 32,
-    image: null,
-  },
-];
+import { ArrowLeft, AlertTriangle, Search, MapPin, Clock } from 'lucide-react';
+import { api } from '../lib/api';
 
 const RISK_COLORS = {
   high: { bg: '#FFF5F5', text: '#E53935', border: 'rgba(229,57,53,0.15)', label: 'HIGH RISK' },
@@ -76,10 +9,40 @@ const RISK_COLORS = {
   low: { bg: '#F0FFF4', text: '#00C853', border: 'rgba(0,200,83,0.15)', label: 'LOW RISK' },
 };
 
+function timeAgo(iso) {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return `${Math.floor(days / 7)}w ago`;
+}
+
 export default function ReportsList() {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    api.get(`/api/reviews?page=${page}&limit=20`)
+      .then(data => {
+        if (cancelled) return;
+        setReports(data?.reports ?? []);
+      })
+      .catch(err => !cancelled && setError(err.message))
+      .finally(() => !cancelled && setLoading(false));
+    return () => { cancelled = true; };
+  }, [page]);
 
   const filters = [
     { key: 'all', label: 'All' },
@@ -87,12 +50,11 @@ export default function ReportsList() {
     { key: 'medium', label: 'Caution' },
   ];
 
-  const filtered = REPORTS.filter(r => {
-    const matchFilter = activeFilter === 'all' || r.risk === activeFilter;
-    const matchSearch = !searchQuery || 
-      r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.number.includes(searchQuery) ||
-      r.location.toLowerCase().includes(searchQuery.toLowerCase());
+  const filtered = reports.filter(r => {
+    const risk = r.risk_level || 'low';
+    const matchFilter = activeFilter === 'all' || risk === activeFilter;
+    const haystack = `${r.business_name || ''} ${r.phone || ''} ${r.description || ''}`.toLowerCase();
+    const matchSearch = !searchQuery || haystack.includes(searchQuery.toLowerCase());
     return matchFilter && matchSearch;
   });
 
@@ -189,8 +151,29 @@ export default function ReportsList() {
 
       {/* Report Cards */}
       <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {filtered.map((report, idx) => {
-          const riskStyle = RISK_COLORS[report.risk] || RISK_COLORS.low;
+        {loading && (
+          <div style={{ textAlign: 'center', padding: '40px 20px', color: '#8896A5' }}>
+            Loading reports...
+          </div>
+        )}
+
+        {error && !loading && (
+          <div style={{
+            background: '#FFF5F5', border: '1px solid #FFC5C5', borderRadius: '12px',
+            padding: '14px', fontSize: '13px', color: '#C62828',
+          }}>
+            {error}
+          </div>
+        )}
+
+        {!loading && !error && filtered.map((report, idx) => {
+          const risk = report.risk_level || 'low';
+          const riskStyle = RISK_COLORS[risk] || RISK_COLORS.low;
+          const title = report.business_name || report.scam_type;
+          const number = report.phone || '—';
+          const amount = report.amount_lost
+            ? `₦${Number(report.amount_lost).toLocaleString()}`
+            : null;
           return (
             <div
               key={report.id}
@@ -200,110 +183,92 @@ export default function ReportsList() {
                 overflow: 'hidden',
                 boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
                 border: '1px solid #ECEFF1',
-                animation: `fadeInUp 0.4s ease ${idx * 0.08}s both`,
+                animation: `fadeInUp 0.4s ease ${idx * 0.05}s both`,
                 cursor: 'pointer',
               }}
             >
-              {/* Card top bar */}
               <div style={{
                 height: '3px',
-                background: report.risk === 'high' 
+                background: risk === 'high'
                   ? 'linear-gradient(90deg, #E53935, #C62828)'
-                  : 'linear-gradient(90deg, #FF9800, #E65100)',
+                  : risk === 'medium'
+                    ? 'linear-gradient(90deg, #FF9800, #E65100)'
+                    : 'linear-gradient(90deg, #00C853, #1B5E20)',
               }}/>
-              
+
               <div style={{ padding: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                   <div style={{ flex: 1 }}>
                     <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#1A2B3C', margin: '0 0 4px 0' }}>
-                      {report.title}
+                      {title}
                     </h3>
-                    <p style={{ fontSize: '12px', color: '#8896A5', margin: 0 }}>{report.number}</p>
+                    <p style={{ fontSize: '12px', color: '#8896A5', margin: 0 }}>{number}</p>
                   </div>
                   <span style={{
-                    background: riskStyle.bg,
-                    color: riskStyle.text,
+                    background: riskStyle.bg, color: riskStyle.text,
                     border: `1px solid ${riskStyle.border}`,
                     fontSize: '10px', fontWeight: '800',
                     padding: '4px 10px', borderRadius: '20px',
-                    flexShrink: 0, marginLeft: '10px',
-                    letterSpacing: '0.5px',
+                    flexShrink: 0, marginLeft: '10px', letterSpacing: '0.5px',
                   }}>
                     {riskStyle.label}
                   </span>
                 </div>
 
-                {/* Amount */}
-                <div style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '6px',
-                  background: '#FFF5F5', borderRadius: '8px',
-                  padding: '6px 10px', marginBottom: '10px',
-                }}>
-                  <span style={{ fontSize: '16px' }}>💸</span>
-                  <span style={{ fontSize: '13px', fontWeight: '800', color: '#E53935' }}>
-                    {report.amount} lost
-                  </span>
-                </div>
+                {amount && (
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                    background: '#FFF5F5', borderRadius: '8px',
+                    padding: '6px 10px', marginBottom: '10px',
+                  }}>
+                    <span style={{ fontSize: '16px' }}>💸</span>
+                    <span style={{ fontSize: '13px', fontWeight: '800', color: '#E53935' }}>
+                      {amount} lost
+                    </span>
+                  </div>
+                )}
 
                 <p style={{ fontSize: '13px', color: '#546E7A', lineHeight: '1.5', margin: '0 0 12px 0' }}>
                   {report.description}
                 </p>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <MapPin size={12} color="#B0BEC5" />
-                      <span style={{ fontSize: '11px', color: '#8896A5' }}>{report.location}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Clock size={12} color="#B0BEC5" />
-                      <span style={{ fontSize: '11px', color: '#8896A5' }}>{report.time}</span>
-                    </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Clock size={12} color="#B0BEC5" />
+                    <span style={{ fontSize: '11px', color: '#8896A5' }}>{timeAgo(report.created_at)}</span>
                   </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <span style={{
-                      background: '#F5F6FA', color: '#8896A5',
-                      fontSize: '10px', fontWeight: '600',
-                      padding: '3px 8px', borderRadius: '6px',
-                    }}>
-                      {report.type}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div style={{ 
-                  display: 'flex', gap: '8px', marginTop: '12px',
-                  paddingTop: '12px', borderTop: '1px solid #F5F6FA',
-                }}>
-                  <button style={{
-                    flex: 1, padding: '8px', borderRadius: '10px',
-                    background: '#FFF5F5', border: '1px solid #FFE0E0',
-                    color: '#E53935', fontSize: '12px', fontWeight: '600',
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                  <span style={{
+                    background: '#F5F6FA', color: '#8896A5',
+                    fontSize: '10px', fontWeight: '600',
+                    padding: '3px 8px', borderRadius: '6px',
                   }}>
-                    👍 Helpful ({report.upvotes})
-                  </button>
-                  <button style={{
-                    flex: 1, padding: '8px', borderRadius: '10px',
-                    background: '#F5F6FA', border: '1px solid #ECEFF1',
-                    color: '#546E7A', fontSize: '12px', fontWeight: '600',
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
-                  }}>
-                    💬 Comment
-                  </button>
+                    {report.scam_type}
+                  </span>
                 </div>
               </div>
             </div>
           );
         })}
 
-        {filtered.length === 0 && (
+        {!loading && !error && filtered.length === 0 && (
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <div style={{ fontSize: '48px', marginBottom: '12px' }}>🔍</div>
             <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1A2B3C', marginBottom: '8px' }}>No reports found</h3>
             <p style={{ fontSize: '14px', color: '#8896A5' }}>Try adjusting your search or filters</p>
           </div>
+        )}
+
+        {!loading && !error && reports.length >= 20 && (
+          <button
+            onClick={() => setPage(p => p + 1)}
+            style={{
+              padding: '12px', borderRadius: '12px',
+              background: 'white', border: '1px solid #ECEFF1',
+              color: '#1A2B3C', fontSize: '13px', fontWeight: '700', cursor: 'pointer',
+            }}
+          >
+            Load more →
+          </button>
         )}
       </div>
 

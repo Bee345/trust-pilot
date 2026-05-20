@@ -4,21 +4,51 @@
 
 ---
 
-## Current State (as of May 2026)
+## Companion Documents
 
-### Files WITH actual content:
-- backend/src/app.js         — Express setup (HAS ESM BUG — fix in Phase 0)
-- backend/src/server.js      — Server start (HAS ESM BUG — fix in Phase 0)
-- backend/src/routes/index.js — Route definitions (references non-existent files)
+This file specifies WHAT to build for each phase. Three other documents handle
+HOW to operate the project around the build work:
 
-### Empty directories (scaffolded, nothing inside):
-- controllers/
-- models/
-- middlewares/
-- services/
-- sockets/
-- utils/
-- config/
+| Document | Purpose |
+|---|---|
+| `CLAUDE.md` | Architecture rules, Nigerian context, security architecture, rules to never violate |
+| `PIPELINE.md` | Full beginner walkthrough for Phase 12 — ESLint, Husky, SonarCloud, Sentry, Supabase, Twilio, Paystack, GitHub Secrets, Vercel, Railway, branch protection |
+| `PROCEDURES.md` | Step-by-step procedures (clone repo, install, env files, daily git flow) |
+| `MCP_SETUP.md` | MCP server setup + token-saving guide (Postman, GitHub, Supabase MCP, scoping per project) |
+| `BACKEND_RULES.md` | Backend coding rules (CommonJS, AppError, constants, model layer rules) |
+| `TASK_MODEL_MAP.txt` | Which Claude model to use for each task type |
+| `PROGRESS_LOG.md` | Append-only log of what was completed and when |
+| `LEARN.md` | Glossary of technologies and concepts used |
+
+If you are starting a new Claude session, read `CLAUDE.md` first, then this file
+for the phase you're on, then the companion document(s) referenced by that phase.
+
+---
+
+## Current Status (verified on disk, as of 2026-05-18)
+
+| Phase | Status | Notes |
+|---|---|---|
+| 0 — Fix ESM/CJS bugs | ✅ DONE | app.js + server.js converted to CommonJS |
+| 1 — Config layer | ✅ DONE | supabase.js, twilio.js, paystack.js exist |
+| 2 — Database schema | ⚠️ UNKNOWN | User must confirm SQL ran in Supabase Dashboard |
+| 3 — Utils layer | ✅ DONE | response.js, validators.js, risk.js, otp.js exist |
+| 4 — Middleware layer | ✅ DONE | auth.js, validate.js, rateLimit.js, security.js exist |
+| 5 — Model layer | ✅ DONE | user, report, verification, company models exist |
+| 6 — Service layer | ✅ DONE | auth, report, verification services exist |
+| 7 — Controller layer | ✅ DONE | 5 controllers (incl. company.controller.js) |
+| 8 — Route files | ✅ DONE | 5 route files wired through routes/index.js |
+| 9 — Socket.io | ✅ DONE | sockets/index.js exists |
+| 10 — Frontend integration | 🔄 IN PROGRESS | api.js + Login + Signup + App.jsx + Home + SearchResults + ReportScam + GetVerified done; ReportsList, MyReports, Profile, Notifications, VerificationStatus remaining |
+| 11 — Tests | ⏳ NOT STARTED | No `__tests__/` folder yet |
+| 12 — Pipeline (cloud connect) | ⏳ NOT STARTED | CI/CD YAML files exist but secrets + accounts not yet wired — see PIPELINE.md |
+
+### Additional files beyond the original plan (already on disk)
+
+- `backend/src/errors/AppError.js` — custom error class + factory functions
+- `backend/src/middlewares/security.js` — helmet + strict CORS + HPP + requestId
+- `backend/src/constants/index.js` — magic numbers / strings centralized
+- `backend/src/controllers/company.controller.js` — companion to companyRoutes.js
 
 ---
 
@@ -1249,6 +1279,39 @@ describe('POST /api/auth/signup', () => {
 
 ---
 
+## PHASE 12 — Pipeline / Cloud Connection
+
+**See `PIPELINE.md` for the full step-by-step beginner walkthrough.** That document
+covers:
+
+1. ESLint + Prettier (rules, VS Code integration)
+2. Husky + lint-staged + commitlint (commit-time enforcement)
+3. SonarCloud (account, project import, token, quality gate)
+4. Sentry (frontend + backend DSN, init code, verification)
+5. Supabase test project (separate from production)
+6. Twilio account + phone number + .env wiring
+7. Paystack test mode + webhook URL + ngrok for local testing
+8. GitHub repository secrets (the master vault — full list of 13 secrets)
+9. Vercel deploy (project link, env vars, getting Vercel IDs)
+10. Railway deploy (root dir, start command, env vars, getting token)
+11. Branch protection rules on `main`
+12. Custom domain (optional — defer until launch)
+
+Required outcomes of Phase 12:
+- `git push origin main` triggers a successful deploy to Vercel + Railway
+- `/health` returns 200 on the live backend URL
+- A test commit on a PR runs through CI green: frontend build + backend test +
+  SonarCloud + CodeQL
+- A forced error in production is captured in Sentry within 1 minute
+- A test signup creates a row in the production Supabase `users` table
+
+Use Sonnet 4.6 for the code edits (Sentry init, .env updates).
+Use Haiku 4.5 for the documentation work after each sub-step.
+Use Opus 4.7 only for the branch-protection-rules decision and
+Paystack webhook security verification.
+
+---
+
 ## Implementation Timeline
 
 | Day | Phase | Description |
@@ -1262,6 +1325,35 @@ describe('POST /api/auth/signup', () => {
 | 5 | 6 | Services (business logic) |
 | 6 | 7+8 | Controllers + Routes |
 | 7 | 9 | Socket.io + manual API testing |
-| 8 | 10 | Frontend integration |
-| 9 | 11 | Tests |
-| 10 | 12 | Pipeline (PIPELINE.md) |
+| 8 | 10 | Frontend integration (see Phase 10 sub-tasks in TASK_MODEL_MAP Part C) |
+| 9 | 11 | Tests (Jest + Supertest, target 70% coverage) |
+| 10 | 12 | Pipeline (see PIPELINE.md — accounts + secrets + first deploy) |
+
+---
+
+## Phase 10 — Remaining Sub-tasks (as of 2026-05-18)
+
+Phase 10 is partially done. The remaining frontend pages each need a small
+swap from mock data / setTimeout to real `api.get` / `api.post` calls.
+
+| Sub-task | File | Endpoint | Status |
+|---|---|---|---|
+| 10a | `src/lib/api.js` | — | ✅ DONE |
+| 10b | `Login.jsx` | POST /api/auth/login | ✅ DONE |
+| 10c | `Signup.jsx` | POST /api/auth/signup | ✅ DONE |
+| 10d | `App.jsx` | localStorage token restore | ✅ DONE |
+| 10e | `Home.jsx` | GET /api/reviews | 🔄 UNCOMMITTED |
+| 10e | `SearchResults.jsx` | GET /api/companies/search | 🔄 UNCOMMITTED |
+| 10f | `ReportScam.jsx` | POST /api/reviews | ✅ DONE |
+| 10g | `GetVerified.jsx` | POST /api/verify/initiate | ✅ DONE |
+| 10h | `ReportsList.jsx` | GET /api/reviews (paginated) | ⏳ TODO |
+| 10i | `MyReports.jsx` | GET /api/reviews/mine (need endpoint) | ⏳ TODO |
+| 10j | `Profile.jsx` | GET/PUT /api/users/me | ⏳ TODO |
+| 10k | `VerificationStatus.jsx` | GET /api/verify/status | ⏳ TODO |
+| 10l | `Notifications.jsx` | Socket.io client `new_report` event | ⏳ TODO |
+| 10m | Protected route guard | wraps each protected `<Route>` | ⏳ TODO |
+
+All "TODO" sub-tasks above should be done in the `trustbase-frontend` worktree
+on the `feature/frontend` branch using Sonnet 4.6. Each is a single-file
+change under ~30 lines once you know the pattern (see `Login.jsx` or
+`ReportScam.jsx` for the template).

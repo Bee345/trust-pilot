@@ -1,37 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Clock, Circle, ShieldCheck, Phone } from 'lucide-react';
-
-const steps = [
-  {
-    id: 1,
-    title: 'Application Submitted',
-    time: 'March 12, 2024 at 2:30 PM',
-    desc: 'Your verification application was received with all required documents.',
-    status: 'done',
-  },
-  {
-    id: 2,
-    title: 'Under Review',
-    time: 'March 14, 2024 at 10:00 AM',
-    desc: 'Our team is currently verifying your identity and documents. This usually takes 1-2 business days.',
-    status: 'current',
-  },
-  {
-    id: 3,
-    title: 'Verification Call',
-    time: 'Pending',
-    desc: 'We may schedule a brief call to confirm your business details.',
-    status: 'pending',
-  },
-  {
-    id: 4,
-    title: 'Approved & Verified',
-    time: 'Pending',
-    desc: 'Your verified badge will be active and visible on all searches.',
-    status: 'pending',
-  },
-];
+import { ArrowLeft, CheckCircle2, Clock } from 'lucide-react';
+import { api } from '../lib/api';
 
 const STATUS_CONFIG = {
   done: { bg: '#00C853', icon: <CheckCircle2 size={20} color="white" /> },
@@ -39,8 +9,48 @@ const STATUS_CONFIG = {
   pending: { bg: '#E0E4EC', icon: null },
 };
 
+const STAGE_ORDER = ['pending_payment', 'payment_received', 'under_review', 'approved'];
+
+function buildSteps(verification) {
+  if (!verification) {
+    return [
+      { id: 1, title: 'No application found', time: '', desc: 'Start your verification to track its status.', status: 'pending' },
+    ];
+  }
+
+  const currentIdx = STAGE_ORDER.indexOf(verification.status);
+  const createdAt = verification.created_at ? new Date(verification.created_at).toLocaleString() : '';
+  const reviewedAt = verification.reviewed_at ? new Date(verification.reviewed_at).toLocaleString() : 'Pending';
+
+  if (verification.status === 'rejected') {
+    return [
+      { id: 1, title: 'Application Submitted', time: createdAt, desc: 'Your verification application was received.', status: 'done' },
+      { id: 2, title: 'Rejected', time: reviewedAt, desc: 'Your application was rejected. Contact support for details.', status: 'current' },
+    ];
+  }
+
+  return [
+    { id: 1, title: 'Application Submitted', time: createdAt, desc: 'Your verification application was received.', status: currentIdx > 0 ? 'done' : 'current' },
+    { id: 2, title: 'Payment Received', time: currentIdx >= 1 ? 'Confirmed' : 'Pending', desc: 'Your Paystack payment has been confirmed.', status: currentIdx > 1 ? 'done' : currentIdx === 1 ? 'current' : 'pending' },
+    { id: 3, title: 'Under Review', time: currentIdx >= 2 ? 'In progress' : 'Pending', desc: 'Our team is verifying your identity and documents.', status: currentIdx > 2 ? 'done' : currentIdx === 2 ? 'current' : 'pending' },
+    { id: 4, title: 'Approved & Verified', time: currentIdx === 3 ? reviewedAt : 'Pending', desc: 'Your verified badge is active across all searches.', status: currentIdx === 3 ? 'done' : 'pending' },
+  ];
+}
+
 export default function VerificationStatus() {
   const navigate = useNavigate();
+  const [verification, setVerification] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    api.get('/api/verify/status')
+      .then(data => setVerification(data?.verification ?? null))
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const steps = buildSteps(verification);
 
   return (
     <div style={{ background: '#F5F6FA', minHeight: '100vh' }}>
@@ -68,7 +78,22 @@ export default function VerificationStatus() {
       </div>
 
       <div style={{ background: 'white', borderRadius: '24px 24px 0 0', marginTop: '-20px', padding: '24px', position: 'relative', zIndex: 10, minHeight: 'calc(100vh - 120px)' }}>
-        
+
+        {loading && (
+          <div style={{ textAlign: 'center', padding: '40px 20px', color: '#8896A5' }}>
+            Loading verification status...
+          </div>
+        )}
+
+        {error && !loading && (
+          <div style={{
+            background: '#FFF5F5', border: '1px solid #FFC5C5', borderRadius: '12px',
+            padding: '14px', fontSize: '13px', color: '#C62828', marginBottom: '16px',
+          }}>
+            {error}
+          </div>
+        )}
+
         {/* Status Banner */}
         <div style={{
           background: 'linear-gradient(135deg, #FFF8F0, #FFFAF5)',
