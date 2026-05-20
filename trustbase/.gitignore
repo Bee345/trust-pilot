@@ -25,6 +25,10 @@ dist-ssr
 *.sln
 *.sw?
 
+
+# mackdown
+.md
+!README.md
 # Environment Variables
 .env
 .env.local
