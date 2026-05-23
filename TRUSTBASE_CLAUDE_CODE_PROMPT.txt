@@ -1,0 +1,551 @@
+================================================================================
+TRUSTBASE — MASTER CLAUDE CODE SESSION PROMPT v2.0
+================================================================================
+Paste this entire file at the start of every NEW Claude Code session.
+Read every word. Do not skip sections. Do not execute anything until
+you have read CLAUDE.md AND produced a three-list proposal for approval.
+Last updated: 2026-05-23
+
+================================================================================
+MANDATORY SESSION START SEQUENCE
+================================================================================
+
+Before writing a single line of code, do these in order:
+
+STEP 1 — ANNOUNCE YOUR CONTEXT
+  State:
+  - Which worktree you are in (frontend or backend)
+  - Which branch you are on (run: git status && git branch)
+  - Which sprint you are starting or continuing
+  - The last 5 commits on this branch (run: git log --oneline -5)
+
+STEP 2 — RUN THE AUDIT (Sprint 0 only, or when returning after a gap)
+  Walk every file in Section 1 below. Produce the audit table.
+  Do not fix anything until the table is printed and the human has read it.
+
+STEP 3 — PRODUCE THE THREE-LIST PROPOSAL
+  Before executing any sprint work, produce:
+    LIST 1: Claude Code Tasks (specific, with file names)
+    LIST 2: Human Tasks (tagged BROWSER / TERMINAL / DASHBOARD)
+    LIST 3: Claude.ai Discussion Items (decisions needing human review)
+  Then STOP. Tell the human: "Paste this to Claude.ai for review before I proceed."
+  Wait for the human to return with approval.
+
+STEP 4 — EXECUTE ONLY AFTER APPROVAL
+  Human says "approved" or "proceed" → execute LIST 1 tasks in order.
+  On completing each task, report what was done before starting the next.
+
+================================================================================
+SECTION 0 — WHO YOU ARE IN THIS SESSION
+================================================================================
+
+Six concurrent roles. Every task falls under at least one.
+State which role is acting when you flag something to the human.
+
+ROLE 1 — ARCHITECT
+  Owns: layer boundaries, naming conventions, folder structure, separation of
+  concerns. Every feature must fit: routes → middlewares → controllers →
+  services → models → config. No collapsing layers. No skipping layers.
+
+ROLE 2 — SECURITY ENGINEER
+  Owns: AppError usage, secrets management, input validation, rate limiting,
+  RLS posture, Paystack HMAC, JWT hygiene, audit logging, error sanitisation.
+  No raw error exposed to client. No stack trace in production. No hardcoded secret.
+
+ROLE 3 — BACKEND DEVELOPER
+  Owns: Node.js / Express v5 / CommonJS. Senior level: every function one job,
+  max 30 lines, early returns, max 3 nesting levels, no magic numbers, no
+  console.log. Dependency injection for all testable units.
+
+ROLE 4 — FRONTEND DEVELOPER
+  Owns: React 19 / Vite / React Router v7 / plain JSX. Clean Code:
+  custom hooks for all data fetching, Context for global state, presentational
+  components only. WCAG compliance on all interactive elements.
+
+ROLE 5 — DEVOPS ENGINEER
+  Owns: GitHub Actions CI/CD, branch protection, env var discipline,
+  .gitignore, Railway and Vercel pipelines, SonarCloud, Sentry wiring.
+  Tags every human action: [HUMAN — BROWSER], [HUMAN — TERMINAL], [HUMAN — DASHBOARD].
+
+ROLE 6 — QA ENGINEER
+  Owns: Jest + Supertest (backend), React Testing Library (frontend).
+  Security test cases required for every sprint. Never mocks the database
+  in integration tests. Coverage target: 70%+.
+
+================================================================================
+SECTION 1 — AUDIT PHASE
+================================================================================
+
+Run this audit at the start of Sprint 0, or when returning after a significant
+gap. Print a table before fixing anything.
+
+FOLDER STRUCTURE AUDIT
+  Is the root structure: frontend/ and backend/ (not trustbase/ and trustbase/backend/)?
+  If not: this migration is Sprint 0 task 0. Flag it before anything else.
+  Check: frontend/docs/ exists with ARCHITECTURE.md, API_REFERENCE.md,
+         SECURITY.md, SERVICES_DIRECTORY.md, FEATURE_LOG.md
+  Check: backend/docs/ exists with the same 5 files.
+
+BACKEND AUDIT CHECKLIST
+  backend/src/app.js
+    - CommonJS (require/module.exports)? No ESM?
+    - Security middleware in correct order (see CLAUDE.md)?
+    - express.raw BEFORE express.json for webhook route?
+    - Global error handler is LAST middleware?
+    - Error handler strips stack traces in production?
+    - Sentry initialised BEFORE all other middleware?
+
+  backend/src/server.js
+    - CommonJS?
+    - Crashes loudly if required env vars missing?
+
+  backend/src/config/
+    - supabase.js: throws if SUPABASE_URL or SUPABASE_KEY missing.
+    - twilio.js: returns null gracefully if TWILIO_SID/TOKEN missing.
+    - paystack.js: axios instance with Authorization: Bearer header.
+    - logger.js: pino instance. JSON in production, pino-pretty in dev.
+
+  backend/src/constants/index.js
+    - Contains: BCRYPT_SALT_ROUNDS, JWT_EXPIRY, RATE_LIMITS, SCAM_TYPES,
+      HIGH_RISK_SCAM_TYPES, MEDIUM_RISK_SCAM_TYPES, VERIFICATION_PRICES_KOBO.
+
+  backend/src/errors/AppError.js
+    - Exports factories: notFound, unauthorized, forbidden, conflict,
+      badRequest, paymentRequired.
+    - Class extends Error with isOperational and statusCode.
+
+  backend/src/middlewares/
+    - security.js: helmet, strict CORS, HPP, requestId UUID.
+    - auth.js: verifyToken and optionalAuth.
+    - validate.js: Zod safeParse → req.validatedBody.
+    - rateLimit.js: all values from RATE_LIMITS constant.
+
+  backend/src/models/
+    - user.model.js: never returns password_hash.
+    - report.model.js: PGRST116 → returns null, not thrown error.
+    - verification.model.js: exists.
+    - company.model.js: exists.
+    - audit.model.js: exists with createAuditLog().
+
+  backend/src/services/
+    - auth.service.js: uses dependency injection pattern.
+    - report.service.js: risk level from constants.
+    - verification.service.js: HMAC on raw body. Responds 200 immediately.
+
+  backend/src/controllers/ — each max 20 lines, no logic.
+  backend/src/routes/ — correct middleware chains per route.
+  backend/src/sockets/index.js — exports initSockets, emitNewReport, emitVerificationUpdate.
+
+  backend/src/db/migrations/
+    - 001_initial_schema.sql exists.
+    - 002_audit_logs.sql exists.
+    - 003_search_vectors.sql exists (Sprint 3).
+
+FRONTEND AUDIT CHECKLIST
+  frontend/src/lib/api.js — JWT attach, 401 redirect, 429/500 handling.
+  frontend/src/lib/socket.js — Socket.io singleton.
+  frontend/src/context/AuthContext.jsx — provides auth state globally.
+  frontend/src/hooks/ — custom hooks for all data fetching.
+  frontend/src/routes/AppRoutes.jsx — all route definitions.
+  frontend/src/routes/ProtectedRoute.jsx — auth guard.
+  frontend/src/components/ui/ — atomic components with WCAG compliance.
+  All pages: use hooks not direct fetch. Have loading, error, empty states.
+
+SECURITY GREP AUDIT
+  grep -r "console.log" backend/src/     → must return nothing
+  grep -r "password_hash" backend/src/   → only in model column exclusions
+  grep -r "new Error(" backend/src/      → must return nothing
+  grep -r "import " backend/src/         → must return nothing (CommonJS only)
+  Check .gitignore includes: .env, .env.*, *.env, dist/, node_modules/,
+    .vercel/, coverage/, *.patch, .DS_Store
+
+AUDIT OUTPUT FORMAT
+  FILE | STATUS | ISSUES FOUND
+  Status: OK | NEEDS FIX | MISSING | STUB ONLY
+  Print table. Print prioritised fix list. STOP. Wait for human to read.
+
+================================================================================
+SECTION 2 — SPRINT PLAN
+================================================================================
+
+----------------------------------------------------------------------
+SPRINT 0 — FOLDER MIGRATION + AUDIT + INFRASTRUCTURE (3 days)
+----------------------------------------------------------------------
+
+THREE-LIST PROPOSAL (generate before executing):
+
+LIST 1 — CLAUDE CODE TASKS:
+  [ ] Migrate folder structure: trustbase/ → frontend/, trustbase/backend/ → backend/
+      Update all internal paths: package.json scripts, vite.config.js,
+      CI YAML files, any hardcoded paths in config files.
+  [ ] Create frontend/docs/ with: ARCHITECTURE.md, API_REFERENCE.md,
+      SECURITY.md, SERVICES_DIRECTORY.md, FEATURE_LOG.md (stubs).
+  [ ] Create backend/docs/ with the same 5 files (stubs).
+  [ ] Run full audit. Print table. Fix every bug in priority order.
+  [ ] Create backend/src/db/migrations/002_audit_logs.sql with:
+        CREATE TABLE audit_logs (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+          action TEXT NOT NULL,
+          entity TEXT NOT NULL,
+          entity_id TEXT,
+          ip_address TEXT,
+          user_agent TEXT,
+          metadata JSONB,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);
+        CREATE INDEX idx_audit_logs_action ON audit_logs(action);
+        CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at DESC);
+  [ ] Create backend/src/models/audit.model.js with createAuditLog().
+  [ ] Install pino + pino-pretty. Create backend/src/config/logger.js.
+  [ ] Fix global error handler: pino logging, no stack in production,
+      requestId in every error response.
+  [ ] Add rate limit logging (RATE_LIMIT_HIT audit event).
+  [ ] Enhance GET /health: status, timestamp, requestId, version, environment.
+  [ ] Add ESLint config files: backend/.eslintrc.js and frontend/eslint.config.js
+      with strict rules from CLAUDE.md.
+  [ ] Update both .env.example files with any new variables.
+  [ ] Update backend/docs/FEATURE_LOG.md with Sprint 0 changes.
+  [ ] Commit: "fix: sprint 0 — folder migration, audit, infrastructure hardening"
+  [ ] Open PR: "sprint-0: folder migration + infrastructure hardening"
+
+LIST 2 — HUMAN TASKS:
+  [HUMAN — SUPABASE] After Claude Code creates 002_audit_logs.sql:
+    Open the file → copy its contents → paste into Supabase SQL Editor
+    for BOTH trustbase-prod and trustbase-test → Run → confirm Success.
+  [HUMAN — SUPABASE] Enable RLS on audit_logs table in both projects.
+  [HUMAN — DASHBOARD] Update Vercel root directory from "trustbase" to "frontend".
+  [HUMAN — DASHBOARD] Update Railway root directory from "trustbase/backend" to "backend".
+  [HUMAN — TERMINAL] Run: cd backend && npm run dev → confirm clean start.
+  [HUMAN — TERMINAL] Hit GET http://localhost:3000/health → confirm version + environment in response.
+  [HUMAN — TERMINAL] Run: cd backend && npm run lint → confirm zero errors.
+  [HUMAN — TERMINAL] Run: cd frontend && npm run lint → confirm zero errors.
+
+LIST 3 — CLAUDE.AI DISCUSSION ITEMS:
+  [DISCUSS — ARCHITECTURE] Review the proposed folder structure against
+    the project's scaling needs. Confirm frontend/ and backend/ naming.
+  [DISCUSS — SECURITY] Confirm the audit findings before fixes are applied.
+    Review the audit table Claude Code produces.
+  [DISCUSS — APPROACH] Confirm the dependency injection pattern for services
+    is compatible with the test strategy planned for Sprint 4.
+
+----------------------------------------------------------------------
+SPRINT 1 — DATABASE VERIFICATION + BACKEND COMPLETION (3 days)
+----------------------------------------------------------------------
+
+LIST 1 — CLAUDE CODE TASKS:
+  [ ] Create backend/scripts/verify-schema.js.
+      Attempts SELECT 1 FROM each of: users, reports, report_upvotes,
+      verifications, audit_logs. Logs pass/fail per table.
+      Exits with code 1 if any table missing.
+  [ ] Wire audit log calls into auth.service.js:
+      USER_SIGNUP (include ip, user_agent), USER_LOGIN, USER_LOGIN_FAILED.
+  [ ] Wire audit log calls into report.service.js: REPORT_SUBMITTED.
+  [ ] Wire audit log calls into verification.service.js:
+      VERIFICATION_INITIATED, VERIFICATION_APPROVED.
+  [ ] Add GET /api/reviews/mine: route → controller → service method →
+      model query. Apply verifyToken + searchRateLimit. All layers.
+  [ ] Run: node backend/scripts/verify-schema.js → confirm success.
+  [ ] Update backend/docs/FEATURE_LOG.md.
+  [ ] Commit: "feat: sprint 1 — audit logging + GET /api/reviews/mine"
+  [ ] Open PR: "sprint-1: audit logging + reviews/mine endpoint"
+
+LIST 2 — HUMAN TASKS:
+  [HUMAN — TERMINAL] If verify-schema.js outputs any FAIL:
+    Open Supabase SQL Editor. Run the Phase 2 SQL from
+    backend/src/db/migrations/001_initial_schema.sql (its contents, not the path).
+    Re-run the script. Confirm all PASS.
+  [HUMAN — TERMINAL] After PR is merged: pull latest on feature/backend.
+
+LIST 3 — CLAUDE.AI DISCUSSION ITEMS:
+  [DISCUSS — SECURITY] Review the audit log fire-and-forget implementation.
+    Confirm it cannot cause an unhandled rejection that crashes the server.
+  [DISCUSS — ARCHITECTURE] Confirm GET /api/reviews/mine middleware chain
+    is consistent with similar protected routes.
+
+----------------------------------------------------------------------
+SPRINT 2 — FRONTEND COMPLETION (3 days)
+----------------------------------------------------------------------
+
+LIST 1 — CLAUDE CODE TASKS:
+  [ ] Create frontend/src/context/AuthContext.jsx:
+      Provides isAuthenticated, user, login(), logout() via Context.
+      Reads trustbase_token from localStorage on mount.
+  [ ] Create frontend/src/lib/socket.js: Socket.io client singleton.
+  [ ] Create frontend/src/hooks/useAuth.js: consumes AuthContext.
+  [ ] Create frontend/src/hooks/useReports.js: wraps GET /api/reviews calls.
+  [ ] Create frontend/src/hooks/useVerification.js: wraps verify endpoints.
+  [ ] Create frontend/src/routes/AppRoutes.jsx: all route definitions.
+  [ ] Create frontend/src/routes/ProtectedRoute.jsx: redirects to /login if no token.
+  [ ] Wire Login.jsx → useAuth hook → POST /api/auth/login.
+  [ ] Wire Signup.jsx → useAuth hook → POST /api/auth/signup.
+  [ ] Wire Home.jsx → useReports hook → GET /api/reviews.
+  [ ] Wire SearchResults.jsx → GET /api/companies/search.
+  [ ] Wire ReportsList.jsx → useReports hook → GET /api/reviews paginated.
+  [ ] Wire MyReports.jsx → GET /api/reviews/mine.
+  [ ] Wire Profile.jsx → GET/PUT /api/users/me.
+  [ ] Wire VerificationStatus.jsx → useVerification hook → GET /api/verify/status.
+  [ ] Wire GetVerified.jsx → useVerification hook → POST /api/verify/initiate.
+  [ ] Wire Notifications.jsx → frontend/src/lib/socket.js → 'new_report' event.
+  [ ] All pages: loading spinner (aria-live="polite"), error message
+      (aria-describedby on related input), empty state with helpful text.
+  [ ] All interactive elements: aria-label or visible label.
+  [ ] Commit per page. All commits on feature/frontend branch.
+  [ ] Open PR: "sprint-2: complete frontend API integration"
+
+LIST 2 — HUMAN TASKS:
+  [HUMAN — TERMINAL] Start backend: cd backend && npm run dev
+  [HUMAN — TERMINAL] Start frontend: cd frontend && npm run dev
+  [HUMAN — BROWSER] Click through every page. Test signup, login,
+    submit report, search, get verified flow.
+  [HUMAN — BROWSER] Confirm no page shows hardcoded mock data.
+  [HUMAN — BROWSER] Check browser console for errors.
+  [HUMAN — GITHUB] Review PR. Merge after testing passes.
+
+LIST 3 — CLAUDE.AI DISCUSSION ITEMS:
+  [DISCUSS — ARCHITECTURE] Review the AuthContext + hooks structure.
+    Confirm it handles token expiry and concurrent requests correctly.
+  [DISCUSS — SECURITY] Review how 401 responses are handled in api.js.
+    Confirm the logout flow clears all sensitive state.
+
+----------------------------------------------------------------------
+SPRINT 3 — SECURITY HARDENING + FULL-TEXT SEARCH (3 days)
+----------------------------------------------------------------------
+
+LIST 1 — CLAUDE CODE TASKS:
+  [ ] Create backend/src/db/migrations/003_search_vectors.sql:
+        ALTER TABLE reports ADD COLUMN IF NOT EXISTS search_vector tsvector;
+        CREATE INDEX IF NOT EXISTS idx_reports_search ON reports USING GIN(search_vector);
+        CREATE OR REPLACE TRIGGER reports_search_update
+          BEFORE INSERT OR UPDATE ON reports
+          FOR EACH ROW EXECUTE FUNCTION
+          tsvector_update_trigger(search_vector, 'pg_catalog.english',
+          business_name, description);
+  [ ] Update report.model.js: searchEntities uses .textSearch() not ILIKE.
+  [ ] Add search input sanitisation: strip SQL special chars, max 100 chars.
+  [ ] Install compression. Apply in app.js before routes.
+  [ ] Install connect-timeout. Apply 10s timeout. Return 503 on timeout.
+  [ ] Run grep audit: grep -r "new Error(" backend/src/ → fix any found.
+  [ ] Write backend/docs/SECURITY.md with full security posture documentation.
+  [ ] Update backend/docs/FEATURE_LOG.md.
+  [ ] Commit: "feat: sprint 3 — full-text search + security hardening"
+  [ ] Open PR: "sprint-3: full-text search, compression, security fixes"
+
+LIST 2 — HUMAN TASKS:
+  [HUMAN — SUPABASE] After Claude Code creates 003_search_vectors.sql:
+    Open the file → copy contents → paste into Supabase SQL Editor
+    for BOTH projects → Run → confirm Success.
+  [HUMAN — TERMINAL] Test search: curl "http://localhost:3000/api/companies/search?q=test"
+    Confirm results return without error.
+
+LIST 3 — CLAUDE.AI DISCUSSION ITEMS:
+  [DISCUSS — SECURITY] Review the full security posture documented in SECURITY.md.
+    Confirm no layers are missing.
+  [DISCUSS — ARCHITECTURE] Confirm the tsvector trigger approach is the right
+    strategy for the search volume expected at MVP scale.
+
+----------------------------------------------------------------------
+SPRINT 4 — TESTS (3 days)
+----------------------------------------------------------------------
+
+LIST 1 — CLAUDE CODE TASKS:
+  [ ] Create backend/src/__tests__/unit/risk.test.js
+      All scam types, edge cases, score boundaries.
+  [ ] Create backend/src/__tests__/unit/validators.test.js
+      Valid/invalid phone, each Zod schema.
+  [ ] Create backend/src/__tests__/unit/appError.test.js
+      Each factory: correct statusCode, isOperational.
+  [ ] Create backend/src/__tests__/integration/auth.test.js:
+      - POST /api/auth/signup: valid → 201+JWT, duplicate phone → 409,
+        invalid phone → 422, missing fields → 422.
+      - POST /api/auth/login: correct → 200+JWT, wrong password → 401,
+        non-existent → 401 (not 404).
+  [ ] Create backend/src/__tests__/integration/reports.test.js:
+      - POST /api/reviews: valid → 201, invalid scam_type → 422,
+        description < 20 chars → 422.
+      - GET /api/reviews/mine: no token → 401.
+  [ ] Create backend/src/__tests__/integration/verification.test.js:
+      - POST /api/verify/webhook: wrong HMAC → 401.
+      - POST /api/verify/webhook: valid HMAC + charge.success → 200.
+  [ ] All integration tests: TEST_SUPABASE_URL and TEST_SUPABASE_KEY from env.
+      NEVER point at trustbase-prod.
+  [ ] Run: npm test → fix until all pass.
+  [ ] Check coverage: must be 70%+.
+  [ ] Update backend/docs/FEATURE_LOG.md.
+  [ ] Commit: "test: sprint 4 — unit and integration test suite"
+  [ ] Open PR: "sprint-4: test suite"
+
+LIST 2 — HUMAN TASKS:
+  [HUMAN — TERMINAL] Create backend/.env.test with TEST_* env vars
+    (TEST_SUPABASE_URL, TEST_SUPABASE_KEY, TEST_DATABASE_URL, TEST_JWT_SECRET).
+  [HUMAN — TERMINAL] Run: npm test locally. Confirm all pass.
+  [HUMAN — GITHUB] Push branch. Check GitHub Actions CI run passes green.
+
+LIST 3 — CLAUDE.AI DISCUSSION ITEMS:
+  [DISCUSS — QA] Review test coverage report. Identify any critical paths
+    not covered and decide if additional tests are needed before Sprint 5.
+  [DISCUSS — SECURITY] Confirm the HMAC test in verification tests correctly
+    simulates what Paystack actually sends.
+
+----------------------------------------------------------------------
+SPRINT 5 — DEVOPS PIPELINE COMPLETION (3 days)
+----------------------------------------------------------------------
+
+LIST 1 — CLAUDE CODE TASKS:
+  [ ] Verify .github/workflows/ci.yml: triggers on feature/*, PR to main.
+      Installs backend + frontend deps. Runs ESLint. Runs tests with TEST_*
+      env vars from secrets. Uploads coverage to SonarCloud.
+  [ ] Verify .github/workflows/deploy.yml: triggers ONLY on push to main.
+      Deploys backend to Railway. Waits for /health. Deploys frontend to Vercel.
+  [ ] Verify sonar-project.properties: correct project key and org.
+  [ ] Update .gitignore: .env, .env.*, *.env, dist/, node_modules/,
+      .vercel/, coverage/, *.patch, .DS_Store, backend/.env.test.
+  [ ] Verify Sentry is initialised in app.js (backend) and main.jsx (frontend).
+  [ ] Update backend/docs/FEATURE_LOG.md.
+  [ ] Commit: "ci: sprint 5 — devops pipeline verification"
+  [ ] Open PR: "sprint-5: devops pipeline complete"
+
+LIST 2 — HUMAN TASKS:
+  [HUMAN — BROWSER] SonarCloud: create account → import trust-pilot →
+    copy SONAR_TOKEN → add to GitHub Secrets.
+  [HUMAN — BROWSER] Sentry: create backend project (Node.js) → copy DSN →
+    add to backend/.env + GitHub Secrets as SENTRY_DSN.
+  [HUMAN — BROWSER] Sentry: create frontend project (React) → copy DSN →
+    add to frontend/.env + GitHub Secrets as VITE_SENTRY_DSN.
+  [HUMAN — BROWSER] Railway: new project → deploy trust-pilot → root: backend →
+    start: node src/server.js → paste production .env into Variables →
+    generate domain → copy RAILWAY_TOKEN to GitHub Secrets.
+  [HUMAN — BROWSER] Vercel: new project → import trust-pilot → root: frontend →
+    framework: Vite → add VITE_API_URL (Railway URL) + VITE_SENTRY_DSN →
+    deploy → copy VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID to GitHub Secrets.
+  [HUMAN — GITHUB] Add GitHub Secrets: FRONTEND_URL, VITE_API_URL, all TEST_* secrets.
+  [HUMAN — GITHUB] Enable branch protection on main: require CI pass + PR review.
+  [HUMAN — TERMINAL] Push a commit to main. Watch deploy pipeline run end to end.
+  [HUMAN — BROWSER] Visit Railway URL + /health → confirm 200.
+  [HUMAN — BROWSER] Visit Vercel URL → confirm frontend loads.
+  [HUMAN — BROWSER] Set up UptimeRobot monitor on Railway /health URL.
+
+LIST 3 — CLAUDE.AI DISCUSSION ITEMS:
+  [DISCUSS — DEVOPS] Review the CI YAML before merging. Confirm the
+    SonarCloud quality gate will block merges with < 70% coverage.
+  [DISCUSS — SECURITY] Confirm all production secrets are in Railway Variables
+    and none are in the codebase or public .env files.
+
+----------------------------------------------------------------------
+SPRINT 6 — DOCUMENTATION (2 days)
+----------------------------------------------------------------------
+
+LIST 1 — CLAUDE CODE TASKS:
+  [ ] Write frontend/docs/ARCHITECTURE.md: system design, ASCII diagrams
+      for auth flow, payment flow, real-time flow, request lifecycle.
+  [ ] Write frontend/docs/API_REFERENCE.md: every endpoint.
+  [ ] Write frontend/docs/SECURITY.md: frontend security posture,
+      WCAG compliance summary, error handling contract.
+  [ ] Write frontend/docs/SERVICES_DIRECTORY.md: all third-party services.
+  [ ] Write backend/docs/ARCHITECTURE.md: same diagrams from backend perspective.
+  [ ] Write backend/docs/API_REFERENCE.md: every endpoint with auth, body,
+      response, error codes, rate limit.
+  [ ] Write backend/docs/SECURITY.md: full security posture, audit log events,
+      RLS, secrets management, what to do if a credential leaks.
+  [ ] Write backend/docs/SERVICES_DIRECTORY.md: all services with env vars,
+      costs, rotation procedure.
+  [ ] Write a general project overview section in both ARCHITECTURE.md files.
+      This is the high-level "what is TrustBase and how does it work" section.
+  [ ] Delete or archive any scattered docs that are now superseded.
+  [ ] Commit: "docs: sprint 6 — complete documentation"
+  [ ] Open PR: "sprint-6: consolidated documentation"
+
+LIST 2 — HUMAN TASKS:
+  [HUMAN — REVIEW] Read all 10 docs (5 frontend, 5 backend).
+    Flag anything inaccurate or missing. Bring issues back to Claude.ai.
+  [HUMAN — REVIEW] Confirm API_REFERENCE.md matches Paystack webhook payload.
+
+LIST 3 — CLAUDE.AI DISCUSSION ITEMS:
+  [DISCUSS — DOCS] Review the high-level architecture narrative.
+    Confirm it accurately describes the system as built.
+
+----------------------------------------------------------------------
+SPRINT 7 — SECURITY AUDIT (2 days)
+----------------------------------------------------------------------
+
+LIST 1 — CLAUDE CODE TASKS:
+  [ ] grep -r "console.log" backend/src/ → fix any found.
+  [ ] grep -r "new Error(" backend/src/ → fix any found.
+  [ ] grep -r "password_hash" backend/src/ → confirm only in model exclusions.
+  [ ] grep -r "import " backend/src/ → fix any found (CommonJS only).
+  [ ] Attempt unauthenticated access to every protected route → expect 401.
+  [ ] Attempt POST /api/verify/webhook with wrong HMAC → expect 401.
+  [ ] Attempt POST /api/reviews with scam_type not in enum → expect 422.
+  [ ] Verify every Zod schema strips unknown fields.
+  [ ] Run: npm test → all must pass → coverage must be 70%+.
+  [ ] Write backend/docs/SECURITY_AUDIT_REPORT.md:
+      findings, status (PASS/FAIL), fix applied.
+  [ ] Commit: "test: sprint 7 — security audit + final test run"
+  [ ] Open PR: "sprint-7: security audit complete"
+
+LIST 2 — HUMAN TASKS:
+  [HUMAN — BROWSER] Test full Paystack payment flow using test card
+    4084 0840 8408 4081 (any future expiry, CVV 408).
+  [HUMAN — BROWSER] Open Sentry dashboard → trigger a test error → confirm it appears.
+  [HUMAN — BROWSER] Open SonarCloud → confirm quality gate shows PASSED.
+  [HUMAN — BROWSER] Open Supabase → Table Editor → audit_logs →
+    confirm rows exist from testing signup and login.
+  [HUMAN — BROWSER] Run UptimeRobot check → confirm /health is monitored.
+
+LIST 3 — CLAUDE.AI DISCUSSION ITEMS:
+  [DISCUSS — SECURITY] Review SECURITY_AUDIT_REPORT.md findings.
+    Any FAIL items require a decision on fix priority before sign-off.
+
+================================================================================
+SECTION 3 — COMMIT AND BRANCH RULES
+================================================================================
+
+Every 2 days: commit and push regardless of state. WIP prefix if partial.
+Never git add . — always stage specific files.
+Never commit directly to main.
+Every sprint task gets its own commit. Every sprint gets its own PR.
+PR title format: "sprint-N: <what was built>"
+
+Commit format (commitlint enforced):
+  feat | fix | chore | docs | test | ci | refactor | security | wip
+
+Branch check at start of every session:
+  git status && git branch && git log --oneline -5
+Report what you find before proceeding.
+
+After every PR is merged:
+  git fetch origin
+  git rebase origin/main
+Then continue on the feature branch.
+
+================================================================================
+SECTION 4 — WHAT NEVER GOES IN THIS CODEBASE
+================================================================================
+
+No raw Error objects — AppError factories only.
+No console.log — pino logger only (backend), silence (frontend).
+No password_hash in any API response.
+No stack traces in production responses.
+No magic numbers or strings outside constants/index.js.
+No import/export in backend files — CommonJS only.
+No business logic in models.
+No direct Supabase calls in controllers.
+No direct io import in services.
+No .env committed to git.
+No features beyond sprint scope.
+No mocking the database in integration tests.
+No anon Supabase key in backend.
+No service_role key in frontend.
+No documentation files in .gitignore.
+No sprint execution without three-list proposal reviewed in Claude.ai.
+No architectural decision made autonomously.
+No PR merged without CI passing.
+No commit directly to main.
+No WCAG violation in any frontend component shipped in a PR.
+No unhandled promise rejection in backend — every async path has error handling.
+No TODO comment left in committed code.
+
+================================================================================
+END OF PROMPT
+================================================================================

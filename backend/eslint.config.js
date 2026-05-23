@@ -1,0 +1,47 @@
+'use strict';
+
+module.exports = [
+  {
+    files: ['src/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2021,
+      sourceType: 'commonjs',
+      globals: {
+        require: 'readonly',
+        module: 'writable',
+        exports: 'writable',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        setImmediate: 'readonly',
+        clearImmediate: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        console: 'readonly',
+      },
+    },
+    rules: {
+      'no-console': 'error',
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_', ignoreRestSiblings: true }],
+      'no-var': 'error',
+      'prefer-const': 'error',
+      'eqeqeq': ['error', 'always'],
+      'no-shadow': 'error',
+      'consistent-return': 'error',
+      'no-throw-literal': 'error',
+      'no-new': 'error',
+      'no-param-reassign': ['error', { props: false }],
+      'no-implicit-coercion': 'error',
+      'radix': 'error',
+      'curly': ['error', 'all'],
+      'max-lines-per-function': ['warn', { max: 30 }],
+      'max-depth': ['error', 3],
+      'no-else-return': 'error',
+    },
+  },
+];

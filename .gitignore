@@ -6,3 +6,22 @@ node_modules/
 .idea/
 .husky/_
 *.patch
+
+# Environment files — never commit real secrets
+.env
+.env.*
+.env.local
+*.env
+
+# Build outputs
+dist/
+build/
+
+# Test coverage
+coverage/
+
+# Deployment
+.vercel/
+
+# Claude Code session data — never commit
+.claude/
