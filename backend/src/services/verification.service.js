@@ -1,3 +1,5 @@
+'use strict';
+
 const crypto = require('crypto');
 const paystackApi = require('../config/paystack');
 const {
@@ -7,9 +9,10 @@ const {
   getVerificationByPaystackRef,
 } = require('../models/verification.model');
 const { updateUser } = require('../models/user.model');
+const { createAuditLog } = require('../models/audit.model');
 const { emitVerificationUpdate } = require('../sockets');
 const { conflict, unauthorized } = require('../errors/AppError');
-const { VERIFICATION_PRICES_KOBO, VERIFICATION_STATUS } = require('../constants');
+const { VERIFICATION_PRICES_KOBO, VERIFICATION_STATUS, AUDIT_ACTIONS } = require('../constants');
 
 async function initiateVerification(userId, type) {
   const existing = await getVerificationByUserId(userId);
@@ -28,6 +31,13 @@ async function initiateVerification(userId, type) {
   });
 
   await createVerification({ userId, type, paystackRef });
+
+  createAuditLog({
+    userId,
+    action: AUDIT_ACTIONS.VERIFICATION_INITIATED,
+    entity: 'verifications',
+    metadata: { type, paystackRef },
+  });
 
   return {
     paymentUrl: response.data.data.authorization_url,
@@ -72,6 +82,15 @@ async function approveVerification(verificationId, userId, type) {
   const updated = await updateVerificationStatus(verificationId, VERIFICATION_STATUS.APPROVED);
   await updateUser(userId, { is_verified: true, verification_type: type });
   emitVerificationUpdate({ verificationId, status: VERIFICATION_STATUS.APPROVED });
+
+  createAuditLog({
+    userId,
+    action: AUDIT_ACTIONS.VERIFICATION_APPROVED,
+    entity: 'verifications',
+    entityId: verificationId,
+    metadata: { type },
+  });
+
   return updated;
 }
 

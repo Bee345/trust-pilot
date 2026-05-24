@@ -1,8 +1,11 @@
+'use strict';
+
 const { createReport, getReportsByPhone, getRecentReports, upvoteReport, getReportsByUser } = require('../models/report.model');
 const { incrementTrustPoints } = require('../models/user.model');
+const { createAuditLog } = require('../models/audit.model');
 const { emitNewReport } = require('../sockets');
 const { computeRiskScore } = require('../utils/risk');
-const { HIGH_RISK_SCAM_TYPES, MEDIUM_RISK_SCAM_TYPES, RISK_LEVELS, REPORT_STATUS } = require('../constants');
+const { HIGH_RISK_SCAM_TYPES, MEDIUM_RISK_SCAM_TYPES, RISK_LEVELS, REPORT_STATUS, AUDIT_ACTIONS } = require('../constants');
 
 function resolveRiskLevel(scamType) {
   if (HIGH_RISK_SCAM_TYPES.has(scamType)) {return RISK_LEVELS.HIGH;}
@@ -30,6 +33,13 @@ async function submitReport(data, userId) {
   }
 
   emitNewReport({ reportId: report.id, riskLevel, scamType: data.scamType });
+  createAuditLog({
+    userId: userId || null,
+    action: AUDIT_ACTIONS.REPORT_SUBMITTED,
+    entity: 'reports',
+    entityId: report.id,
+    metadata: { scamType: data.scamType, riskLevel },
+  });
 
   return report;
 }
@@ -45,7 +55,14 @@ async function listRecentReports({ page, limit }) {
 }
 
 async function upvoteReportById(reportId, userId) {
-  return upvoteReport(reportId, userId);
+  const result = await upvoteReport(reportId, userId);
+  createAuditLog({
+    userId,
+    action: AUDIT_ACTIONS.UPVOTE_ADDED,
+    entity: 'reports',
+    entityId: reportId,
+  });
+  return result;
 }
 
 async function getMyReports(userId) {
