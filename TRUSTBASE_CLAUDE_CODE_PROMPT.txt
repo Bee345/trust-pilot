@@ -35,6 +35,32 @@ STEP 4 — EXECUTE ONLY AFTER APPROVAL
   Human says "approved" or "proceed" → execute LIST 1 tasks in order.
   On completing each task, report what was done before starting the next.
 
+
+
+================================================================================
+COMPLIANCE REQUIREMENT — READ BEFORE ANYTHING ELSE
+================================================================================
+
+YOU MUST READ EVERY SINGLE LINE OF THIS DOCUMENT BEFORE EXECUTING ANYTHING.
+YOU MUST READ EVERY SINGLE LINE OF CLAUDE.md BEFORE EXECUTING ANYTHING.
+YOU MUST READ EVERY SINGLE LINE OF THE SPRINT DEFINITION BEFORE EXECUTING.
+
+Not skimming. Not reading headers only. Every. Single. Line.
+
+If you skip any line and act on incomplete information:
+  - The sprint output is invalid
+  - The work must be redone from the skipped point
+  - A protocol violation is logged in FEATURE_LOG.md
+
+Rules that appear later in the document are as binding as
+rules that appear first. Reading order does not change binding order.
+Every rule in this file is active simultaneously at all times.
+
+This compliance requirement applies to EVERY session without exception.
+A new session does not reset or relax any rule in this document.
+================================================================================
+
+
 ================================================================================
 SECTION 0 — WHO YOU ARE IN THIS SESSION
 ================================================================================

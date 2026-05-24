@@ -1,3 +1,4 @@
+require('dotenv').config();
 const http = require('http');
 
 const REQUIRED_ENV = ['SUPABASE_URL', 'SUPABASE_KEY', 'JWT_SECRET'];
