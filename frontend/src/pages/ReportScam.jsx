@@ -414,7 +414,7 @@ export default function ReportScam() {
         )}
 
         {error && (
-          <div style={{
+          <div role="alert" style={{
             background: '#FFF5F5', border: '1px solid #FFC5C5', borderRadius: '10px',
             padding: '12px 14px', fontSize: '13px', color: '#C62828', marginBottom: '12px',
           }}>

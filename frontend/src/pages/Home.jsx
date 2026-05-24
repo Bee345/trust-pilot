@@ -75,7 +75,7 @@ export default function Home() {
             </h1>
           </div>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <button onClick={() => navigate('/notifications')} style={{
+            <button onClick={() => navigate('/notifications')} aria-label="Notifications" style={{
               width: '38px', height: '38px',
               background: 'rgba(255,255,255,0.15)',
               borderRadius: '50%', border: 'none',
@@ -206,7 +206,7 @@ export default function Home() {
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '24px', color: '#8896A5', fontSize: '13px' }}>Loading...</div>
+          <div aria-live="polite" style={{ textAlign: 'center', padding: '24px', color: '#8896A5', fontSize: '13px' }}>Loading...</div>
         ) : recentReports.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '24px', color: '#8896A5', fontSize: '13px' }}>No reports yet</div>
         ) : (

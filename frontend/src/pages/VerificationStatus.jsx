@@ -65,6 +65,7 @@ export default function VerificationStatus() {
         <div style={{ position: 'absolute', right: '-40px', top: '-40px', width: '150px', height: '150px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }}/>
         <button
           onClick={() => navigate(-1)}
+          aria-label="Go back"
           style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '10px', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginBottom: '16px' }}
         >
           <ArrowLeft size={20} color="white" />
@@ -80,7 +81,7 @@ export default function VerificationStatus() {
       <div style={{ background: 'white', borderRadius: '24px 24px 0 0', marginTop: '-20px', padding: '24px', position: 'relative', zIndex: 10, minHeight: 'calc(100vh - 120px)' }}>
 
         {loading && (
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: '#8896A5' }}>
+          <div aria-live="polite" style={{ textAlign: 'center', padding: '40px 20px', color: '#8896A5' }}>
             Loading verification status...
           </div>
         )}
