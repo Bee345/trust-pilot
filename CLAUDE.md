@@ -31,6 +31,28 @@ When Claude Code needs a decision it cannot make alone, it must produce:
 
 ---
 
+
+## PROMPT COMPLIANCE — NON-NEGOTIABLE
+
+READ EVERY LINE OF THIS FILE BEFORE ACTING.
+READ EVERY LINE OF THE SPRINT DEFINITION BEFORE ACTING.
+READ EVERY LINE OF THE THREE-LIST PROPOSAL BEFORE EXECUTING.
+
+Do not skim. Do not skip sections because they seem familiar.
+Do not assume you remember the rules from a previous session.
+Every session starts fresh. Every line gets read fresh.
+
+If you find yourself about to do something not explicitly
+covered in this file or the sprint definition — STOP.
+Generate a DECISION NEEDED block and paste it to Claude.ai.
+Do not fill in gaps with assumptions.
+
+Skipping any line of instruction is a protocol violation.
+A protocol violation means the sprint output is invalid
+and must be redone from the point of the skip.
+
+---
+
 ## Project Identity
 
 TrustBase — Nigerian scam-reporting and trust-verification mobile-first web app.

@@ -1,12 +1,14 @@
-// Run: node scripts/verify-schema.js
-// Confirms the Supabase schema has all required tables.
-// If it fails, run the Phase 2 SQL from IMPLEMENTATION_PLAN.md in Supabase SQL Editor.
-
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 
 const { createClient } = require('@supabase/supabase-js');
 
-const REQUIRED_TABLES = ['users', 'reports', 'report_upvotes', 'verifications', 'audit_logs'];
+const REQUIRED_TABLES = [
+  { name: 'users', column: 'id' },
+  { name: 'reports', column: 'id' },
+  { name: 'report_upvotes', column: 'report_id' },
+  { name: 'verifications', column: 'id' },
+  { name: 'audit_logs', column: 'id' },
+];
 
 async function main() {
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
@@ -17,10 +19,10 @@ async function main() {
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
   const missing = [];
 
-  for (const table of REQUIRED_TABLES) {
-    const { error } = await supabase.from(table).select('id').limit(1);
+  for (const { name, column } of REQUIRED_TABLES) {
+    const { error } = await supabase.from(name).select(column).limit(1);
     if (error && error.code !== 'PGRST116') {
-      missing.push(`${table} (${error.message})`);
+      missing.push(`${name} (${error.message})`);
     }
   }
 
