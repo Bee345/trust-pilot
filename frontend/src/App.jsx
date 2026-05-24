@@ -1,5 +1,5 @@
 import { BrowserRouter } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import AuthProvider from './context/AuthContext';
 import { useAuth } from './hooks/useAuth';
 import AppRoutes from './routes/AppRoutes';
 import BottomNav from './components/BottomNav';

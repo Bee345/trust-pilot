@@ -31,7 +31,7 @@ export function useReports({ mine = false, page = 1, limit = 20 } = {}) {
   }, [mine, page, limit]);
 
   useEffect(() => {
-    return fetch();
+    Promise.resolve().then(() => fetch());
   }, [fetch]);
 
   return { reports, loading, error, refetch: fetch };

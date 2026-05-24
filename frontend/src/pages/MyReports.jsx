@@ -113,7 +113,7 @@ export default function MyReports() {
 
           {!loading && !error && reports.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {reports.map((report, idx) => {
+              {reports.map((report) => {
                 const statusConf = STATUS_CONFIG[report.status] ?? STATUS_CONFIG.under_review;
                 return (
                   <div key={report.id} style={{

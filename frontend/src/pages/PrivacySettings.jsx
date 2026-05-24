@@ -121,14 +121,14 @@ export default function PrivacySettings() {
           Your identity is never sold or shared with third parties.
         </p>
 
-        {PRIVACY_OPTIONS.map((section, sIdx) => (
+        {PRIVACY_OPTIONS.map((section) => (
           <div key={section.section} style={{ marginBottom: '24px' }}>
             <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#B0BEC5', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>
               {section.section}
             </h3>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {section.items.map((item, iIdx) => {
+              {section.items.map((item) => {
                 const Icon = item.icon;
                 const current = selections[item.key];
                 return (

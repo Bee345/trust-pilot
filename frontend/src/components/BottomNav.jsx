@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { Home, Search, ShieldCheck, Menu, Plus } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -11,8 +11,6 @@ const NAV_ITEMS = [
 ];
 
 const BottomNav = () => {
-  const location = useLocation();
-
   return (
     <div style={{
       position: 'fixed',
@@ -35,8 +33,8 @@ const BottomNav = () => {
         height: '72px',
         padding: '0 8px',
       }}>
-        {NAV_ITEMS.map(({ to, icon: Icon, label, isCTA }) => {
-          const isActive = location.pathname === to;
+        {NAV_ITEMS.map(({ to, icon, label, isCTA }) => {
+          const Icon = icon;
 
           if (isCTA) {
             return (

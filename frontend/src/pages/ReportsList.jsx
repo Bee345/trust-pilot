@@ -33,7 +33,7 @@ export default function ReportsList() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    Promise.resolve().then(() => setLoading(true));
     api.get(`/api/reviews?page=${page}&limit=20`)
       .then(data => {
         if (cancelled) return;

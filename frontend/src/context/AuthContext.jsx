@@ -1,9 +1,10 @@
 import { createContext, useState, useEffect } from 'react';
 import { connectSocket, disconnectSocket } from '../lib/socket';
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext(null);
 
-export function AuthProvider({ children }) {
+export default function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -11,9 +12,11 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem('trustbase_token');
     const stored = localStorage.getItem('trustbase_user');
     if (token && stored) {
-      setUser(JSON.parse(stored));
-      setIsAuthenticated(true);
-      connectSocket(token);
+      Promise.resolve().then(() => {
+        setUser(JSON.parse(stored));
+        setIsAuthenticated(true);
+        connectSocket(token);
+      });
     }
   }, []);
 

@@ -150,12 +150,15 @@ export default function Profile() {
                 { icon: Phone, value: form.phone },
                 { icon: Mail, value: form.email },
                 { icon: MapPin, value: form.location },
-              ].map(({ icon: Icon, value }) => (
-                <div key={value} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <Icon size={14} color="#B0BEC5" />
-                  <span style={{ fontSize: '13px', color: '#546E7A' }}>{value}</span>
-                </div>
-              ))}
+              ].map(({ icon, value }) => {
+                const Icon = icon;
+                return (
+                  <div key={value} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <Icon size={14} color="#B0BEC5" />
+                    <span style={{ fontSize: '13px', color: '#546E7A' }}>{value}</span>
+                  </div>
+                );
+              })}
             </div>
           </>
         ) : (

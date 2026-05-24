@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Bell, ShieldCheck, AlertTriangle, Zap } from 'lucide-react';
 import { api } from '../lib/api';
+import { timeAgo } from '../utils/format';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,14 +38,6 @@ export default function Home() {
 
   const riskColor = (level) => level === 'HIGH' ? '#E53935' : level === 'MEDIUM' ? '#FF9800' : '#00C853';
   const riskBg   = (level) => level === 'HIGH' ? '#FFF5F5' : level === 'MEDIUM' ? '#FFF8F0' : '#F0FFF4';
-
-  const timeAgo = (dateStr) => {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const h = Math.floor(diff / 3600000);
-    if (h < 1) return 'Just now';
-    if (h < 24) return `${h}h ago`;
-    return `${Math.floor(h / 24)}d ago`;
-  };
 
   return (
     <div style={{ background: '#F5F6FA', minHeight: '100vh' }}>

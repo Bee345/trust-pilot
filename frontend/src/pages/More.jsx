@@ -23,7 +23,8 @@ function MenuSection({ title, children }) {
   );
 }
 
-function MenuItem({ icon: Icon, iconBg, title, subtitle, onClick, badge, isDestructive = false }) {
+function MenuItem({ icon, iconBg, title, subtitle, onClick, badge, isDestructive = false }) {
+  const Icon = icon;
   return (
     <div 
       onClick={onClick}

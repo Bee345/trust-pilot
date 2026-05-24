@@ -161,7 +161,7 @@ export default function VerificationStatus() {
             zIndex: 0,
           }}/>
 
-          {steps.map((step, idx) => {
+          {steps.map((step) => {
             const conf = STATUS_CONFIG[step.status];
             return (
               <div key={step.id} style={{
