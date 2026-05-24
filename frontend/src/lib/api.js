@@ -3,24 +3,40 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 async function request(path, options = {}) {
   const token = localStorage.getItem('trustbase_token');
 
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
-
-  const data = await res.json();
+  let res;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    });
+  } catch {
+    throw new Error('Check your connection and try again');
+  }
 
   if (res.status === 401) {
     localStorage.removeItem('trustbase_token');
+    localStorage.removeItem('trustbase_user');
     window.location.href = '/login';
     return;
   }
 
-  if (!res.ok) throw new Error(data.message || 'Request failed');
+  if (res.status === 429) {
+    throw new Error('Too many requests, please wait');
+  }
+
+  if (res.status >= 500) {
+    throw new Error('Something went wrong');
+  }
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.message || 'Request failed');
+  }
 
   return data.data;
 }
