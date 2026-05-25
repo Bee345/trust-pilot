@@ -23,5 +23,6 @@ const forbidden = (msg = 'Access denied') => new AppError(msg, 403);
 const conflict = (msg) => new AppError(msg, 409);
 const badRequest = (msg) => new AppError(msg, 400);
 const paymentRequired = (msg) => new AppError(msg, 402);
+const tooManyRequests = (msg) => new AppError(msg, 429);
 
-module.exports = { AppError, notFound, unauthorized, forbidden, conflict, badRequest, paymentRequired };
+module.exports = { AppError, notFound, unauthorized, forbidden, conflict, badRequest, paymentRequired, tooManyRequests };

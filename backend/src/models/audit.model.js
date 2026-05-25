@@ -16,4 +16,23 @@ async function createAuditLog({ userId, action, entity, entityId, ipAddress, use
   }
 }
 
-module.exports = { createAuditLog };
+async function findRecentReportByIp(ipAddress, phone, windowMinutes) {
+  if (!ipAddress || !phone) {return null;}
+  const since = new Date(Date.now() - windowMinutes * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from('audit_logs')
+    .select('id')
+    .eq('action', 'REPORT_SUBMITTED')
+    .eq('ip_address', ipAddress)
+    .eq('entity_id', phone)
+    .gte('created_at', since)
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    process.stderr.write(`[audit] findRecentReportByIp error: ${error.message}\n`);
+    return null;
+  }
+  return data;
+}
+
+module.exports = { createAuditLog, findRecentReportByIp };
