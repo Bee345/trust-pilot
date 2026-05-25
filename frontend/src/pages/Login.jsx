@@ -22,7 +22,13 @@ export default function Login() {
       login(data.user, data.token);
       navigate('/home');
     } catch (err) {
-      setError(err.message);
+      if (err.status === 401) {
+        setError('Invalid phone number or password');
+      } else if (err.status === 429 || err.message?.includes('Try again in')) {
+        setError(err.message);
+      } else {
+        setError('Something went wrong. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

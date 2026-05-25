@@ -20,12 +20,16 @@ async function request(path, options = {}) {
   if (res.status === 401) {
     localStorage.removeItem('trustbase_token');
     localStorage.removeItem('trustbase_user');
-    window.location.href = '/login';
-    return;
+    const authErr = new Error('Unauthorized');
+    authErr.status = 401;
+    throw authErr;
   }
 
   if (res.status === 429) {
-    throw new Error('Too many requests, please wait');
+    const body = await res.json().catch(() => ({}));
+    const ratErr = new Error(body.message || 'Too many requests, please wait');
+    ratErr.status = 429;
+    throw ratErr;
   }
 
   if (res.status >= 500) {
