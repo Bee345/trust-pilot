@@ -2,9 +2,19 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit2, Camera, MapPin, Phone, Mail, ShieldCheck, Star, FileText, Check } from 'lucide-react';
 import { api } from '../lib/api';
+import { useReports } from '../hooks/useReports';
+import { timeAgo } from '../utils/format';
+
+const REPORT_STATUS_STYLE = {
+  pending:      { label: 'Pending',      color: '#FF9800', bg: '#FFF8F0' },
+  under_review: { label: 'Under Review', color: '#FF9800', bg: '#FFF8F0' },
+  published:    { label: 'Published',    color: '#00C853', bg: '#F0FFF4' },
+  rejected:     { label: 'Rejected',     color: '#E53935', bg: '#FFF5F5' },
+};
 
 export default function Profile() {
   const navigate = useNavigate();
+  const { reports, loading: reportsLoading } = useReports({ mine: true, limit: 5 });
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
@@ -277,21 +287,28 @@ export default function Profile() {
           <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#1A2B3C', margin: 0 }}>My Recent Reports</h3>
           <span onClick={() => navigate('/my-reports')} style={{ fontSize: '13px', color: '#E53935', fontWeight: '600', cursor: 'pointer' }}>See all</span>
         </div>
-        {[
-          { target: '08098765432', status: 'Under Review', statusColor: '#FF9800', bg: '#FFF8F0', time: '2 days ago' },
-          { target: 'Ada Chioma Boutique', status: 'Published', statusColor: '#00C853', bg: '#F0FFF4', time: '1 week ago' },
-        ].map((r, i) => (
-          <div key={i} style={{ background: 'white', borderRadius: '14px', padding: '14px', display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px', border: '1px solid #ECEFF1', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#FFF5F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <FileText size={18} color="#E53935" />
+        {reportsLoading && (
+          <p style={{ fontSize: '13px', color: '#8896A5', textAlign: 'center', padding: '16px 0' }}>Loading reports...</p>
+        )}
+        {!reportsLoading && reports.length === 0 && (
+          <p style={{ fontSize: '13px', color: '#8896A5', textAlign: 'center', padding: '16px 0' }}>No reports yet.</p>
+        )}
+        {!reportsLoading && reports.map(r => {
+          const target = r.phone || r.business_name || 'Unknown';
+          const statusStyle = REPORT_STATUS_STYLE[r.status] || { label: r.status, color: '#546E7A', bg: '#F5F6FA' };
+          return (
+            <div key={r.id} style={{ background: 'white', borderRadius: '14px', padding: '14px', display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px', border: '1px solid #ECEFF1', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#FFF5F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FileText size={18} color="#E53935" />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: '14px', fontWeight: '700', color: '#1A2B3C', margin: '0 0 2px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{target}</p>
+                <p style={{ fontSize: '11px', color: '#B0BEC5', margin: 0 }}>{timeAgo(r.created_at)}</p>
+              </div>
+              <span style={{ background: statusStyle.bg, color: statusStyle.color, fontSize: '11px', fontWeight: '700', padding: '4px 10px', borderRadius: '20px', flexShrink: 0 }}>{statusStyle.label}</span>
             </div>
-            <div style={{ flex: 1 }}>
-              <p style={{ fontSize: '14px', fontWeight: '700', color: '#1A2B3C', margin: '0 0 2px 0' }}>{r.target}</p>
-              <p style={{ fontSize: '11px', color: '#B0BEC5', margin: 0 }}>{r.time}</p>
-            </div>
-            <span style={{ background: r.bg, color: r.statusColor, fontSize: '11px', fontWeight: '700', padding: '4px 10px', borderRadius: '20px' }}>{r.status}</span>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

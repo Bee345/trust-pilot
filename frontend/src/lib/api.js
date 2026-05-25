@@ -32,6 +32,13 @@ async function request(path, options = {}) {
     throw ratErr;
   }
 
+  if (res.status === 409) {
+    const body = await res.json().catch(() => ({}));
+    const conflictErr = new Error(body.message || 'Conflict');
+    conflictErr.status = 409;
+    throw conflictErr;
+  }
+
   if (res.status >= 500) {
     throw new Error('Something went wrong');
   }
