@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit2, Camera, MapPin, Phone, Mail, ShieldCheck, Star, FileText, Check } from 'lucide-react';
 import { api } from '../lib/api';
@@ -16,6 +16,20 @@ export default function Profile() {
     location: '',
     bio: '',
   });
+  const [avatar, setAvatar] = useState(() => localStorage.getItem('trustbase_avatar') || null);
+  const avatarInputRef = useRef(null);
+
+  const handleAvatarSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) { return; }
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const dataUrl = evt.target.result;
+      localStorage.setItem('trustbase_avatar', dataUrl);
+      setAvatar(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => {
     api.get('/api/users/me')
@@ -99,17 +113,33 @@ export default function Profile() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '32px', fontWeight: '900', color: 'white',
               boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+              overflow: 'hidden',
             }}>
-              {form.name ? form.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '—'}
+              {avatar
+                ? <img src={avatar} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : (form.name ? form.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '—')
+              }
             </div>
-            <button style={{
-              position: 'absolute', bottom: '-4px', right: '-4px',
-              width: '28px', height: '28px',
-              background: '#1A2B3C', borderRadius: '50%',
-              border: '3px solid white',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer',
-            }}>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarSelect}
+              style={{ display: 'none' }}
+              aria-label="Upload profile photo"
+            />
+            <button
+              aria-label="Change profile photo"
+              onClick={() => avatarInputRef.current.click()}
+              style={{
+                position: 'absolute', bottom: '-4px', right: '-4px',
+                width: '28px', height: '28px',
+                background: '#1A2B3C', borderRadius: '50%',
+                border: '3px solid white',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
               <Camera size={13} color="white" />
             </button>
           </div>

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Camera, Phone, Briefcase, AlertCircle, CheckCircle2, Upload, X } from 'lucide-react';
+import { ArrowLeft, Camera, Phone, Briefcase, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { api } from '../lib/api';
 
 const SCAM_TYPES = [
@@ -26,6 +26,13 @@ export default function ReportScam() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [riskLevel, setRiskLevel] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) { return; }
+    setForm(prev => ({ ...prev, evidence: { name: file.name, size: file.size, type: file.type } }));
+  };
 
   const handleNext = () => {
     if (step < 3) setStep(step + 1);
@@ -47,6 +54,7 @@ export default function ReportScam() {
         description: form.description,
         amountLost: form.amount ? Number(form.amount) : undefined,
         anonymous: form.anonymous,
+        evidenceFilename: form.evidence?.name || null,
       };
       const res = await api.post('/api/reviews', payload);
       setRiskLevel(res?.report?.risk_level ?? null);
@@ -180,6 +188,7 @@ export default function ReportScam() {
         flex: 1, background: 'white',
         borderRadius: '24px 24px 0 0',
         marginTop: '-20px', padding: '24px',
+        paddingBottom: '80px',
         boxShadow: '0 -4px 20px rgba(0,0,0,0.05)',
         position: 'relative', zIndex: 10,
       }}>
@@ -335,42 +344,58 @@ export default function ReportScam() {
             <p style={{ fontSize: '13px', color: '#8896A5', marginBottom: '24px' }}>Screenshots or photos help strengthen your report</p>
 
             {/* Upload Area */}
-            <div style={{
-              border: '2px dashed #E0E4EC',
-              borderRadius: '16px',
-              padding: '32px',
-              textAlign: 'center',
-              background: '#FAFBFC',
-              cursor: 'pointer',
-              marginBottom: '20px',
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#E53935'; e.currentTarget.style.background = '#FFF5F5'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#E0E4EC'; e.currentTarget.style.background = '#FAFBFC'; }}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={handleFileSelect}
+              style={{ display: 'none' }}
+            />
+            <div
+              role="button"
+              aria-label="Upload evidence file"
+              tabIndex={0}
+              style={{
+                border: `2px dashed ${form.evidence ? '#00C853' : '#E0E4EC'}`,
+                borderRadius: '16px',
+                padding: '32px',
+                textAlign: 'center',
+                background: form.evidence ? '#F0FFF4' : '#FAFBFC',
+                cursor: 'pointer',
+                marginBottom: '20px',
+                transition: 'all 0.2s ease',
+              }}
+              onClick={() => fileInputRef.current.click()}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { fileInputRef.current.click(); } }}
+              onMouseEnter={e => { if (!form.evidence) { e.currentTarget.style.borderColor = '#E53935'; e.currentTarget.style.background = '#FFF5F5'; } }}
+              onMouseLeave={e => { if (!form.evidence) { e.currentTarget.style.borderColor = '#E0E4EC'; e.currentTarget.style.background = '#FAFBFC'; } }}
             >
               <div style={{
                 width: '60px', height: '60px',
-                background: 'linear-gradient(135deg, #E53935, #C62828)',
+                background: form.evidence ? 'linear-gradient(135deg, #00C853, #1B5E20)' : 'linear-gradient(135deg, #E53935, #C62828)',
                 borderRadius: '16px',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 margin: '0 auto 12px',
               }}>
-                <Camera size={28} color="white" />
+                {form.evidence ? <CheckCircle2 size={28} color="white" /> : <Camera size={28} color="white" />}
               </div>
-              <p style={{ fontSize: '15px', fontWeight: '700', color: '#1A2B3C', margin: '0 0 4px 0' }}>
-                Upload Evidence
-              </p>
-              <p style={{ fontSize: '12px', color: '#8896A5', margin: '0 0 12px 0' }}>
-                Tap to upload screenshots, chat logs, or receipts
-              </p>
-              <span style={{
-                background: '#FFF5F5', color: '#E53935',
-                fontSize: '12px', fontWeight: '600',
-                padding: '6px 16px', borderRadius: '20px',
-                border: '1px solid rgba(229,57,53,0.2)',
-              }}>
-                Choose Files
-              </span>
+              {form.evidence ? (
+                <>
+                  <p style={{ fontSize: '15px', fontWeight: '700', color: '#1B5E20', margin: '0 0 4px 0' }}>File Selected</p>
+                  <p style={{ fontSize: '12px', color: '#2E7D32', margin: '0 0 12px 0', wordBreak: 'break-all' }}>{form.evidence.name}</p>
+                  <span style={{ background: '#E8F5E9', color: '#00C853', fontSize: '12px', fontWeight: '600', padding: '6px 16px', borderRadius: '20px', border: '1px solid rgba(0,200,83,0.2)' }}>
+                    Change File
+                  </span>
+                </>
+              ) : (
+                <>
+                  <p style={{ fontSize: '15px', fontWeight: '700', color: '#1A2B3C', margin: '0 0 4px 0' }}>Upload Evidence</p>
+                  <p style={{ fontSize: '12px', color: '#8896A5', margin: '0 0 12px 0' }}>Tap to upload screenshots, chat logs, or receipts</p>
+                  <span style={{ background: '#FFF5F5', color: '#E53935', fontSize: '12px', fontWeight: '600', padding: '6px 16px', borderRadius: '20px', border: '1px solid rgba(229,57,53,0.2)' }}>
+                    Choose File
+                  </span>
+                </>
+              )}
             </div>
 
             {/* Review Summary */}
