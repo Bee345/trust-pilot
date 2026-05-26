@@ -1,12 +1,15 @@
 const supabase = require('../config/supabase');
+const { NIGERIAN_PHONE_REGEX, REPORT_STATUS } = require('../constants');
 
 async function searchEntities(query) {
-  const { data, error } = await supabase
+  const base = supabase
     .from('reports')
     .select('phone, business_name, scam_type, risk_level, created_at')
-    .textSearch('search_vector', query)
-    .eq('status', 'published')
+    .neq('status', REPORT_STATUS.REJECTED)
     .limit(20);
+  const { data, error } = await (NIGERIAN_PHONE_REGEX.test(query)
+    ? base.eq('phone', query)
+    : base.textSearch('search_vector', query));
   if (error) {throw error;}
   return data;
 }

@@ -31,6 +31,8 @@ const REPORT_STATUS = Object.freeze({
 
 const RISK_LEVELS = Object.freeze({ LOW: 'low', MEDIUM: 'medium', HIGH: 'high' });
 
+const NIGERIAN_PHONE_REGEX = /^(0[7-9][0-1]\d{8})$/;
+
 // Paystack amounts in kobo (1 Naira = 100 kobo)
 const VERIFICATION_PRICES_KOBO = Object.freeze({
   individual: 200000,   // ₦2,000
@@ -75,6 +77,7 @@ module.exports = {
   VERIFICATION_STATUS,
   REPORT_STATUS,
   RISK_LEVELS,
+  NIGERIAN_PHONE_REGEX,
   VERIFICATION_PRICES_KOBO,
   JWT_EXPIRY,
   BCRYPT_SALT_ROUNDS,

@@ -1,5 +1,6 @@
 const reportService = require('../services/report.service');
 const { success, error } = require('../utils/response');
+const { RISK_LEVELS } = require('../constants');
 
 async function submitReport(req, res, next) {
   try {
@@ -16,7 +17,9 @@ async function getReports(req, res, next) {
   try {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 20;
-    const result = await reportService.listRecentReports({ page, limit });
+    const { risk_level } = req.query;
+    const riskLevel = Object.values(RISK_LEVELS).includes(risk_level) ? risk_level : null;
+    const result = await reportService.listRecentReports({ page, limit, riskLevel });
     success(res, result);
   } catch (err) {
     next(err);

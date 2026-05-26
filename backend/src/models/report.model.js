@@ -1,4 +1,5 @@
 const supabase = require('../config/supabase');
+const { REPORT_STATUS } = require('../constants');
 
 async function createReport(data) {
   const { data: report, error } = await supabase
@@ -21,14 +22,15 @@ async function getReportsByPhone(phone) {
   return data;
 }
 
-async function getRecentReports({ page = 1, limit = 20 } = {}) {
+async function getRecentReports({ page = 1, limit = 20, riskLevel } = {}) {
   const from = (page - 1) * limit;
-  const { data, error, count } = await supabase
+  const base = supabase
     .from('reports')
     .select('*', { count: 'exact' })
-    .eq('status', 'published')
+    .neq('status', REPORT_STATUS.REJECTED)
     .order('created_at', { ascending: false })
     .range(from, from + limit - 1);
+  const { data, error, count } = await (riskLevel ? base.eq('risk_level', riskLevel) : base);
   if (error) {throw error;}
   return { reports: data, total: count };
 }
