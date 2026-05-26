@@ -48,3 +48,43 @@ Append-only. Never delete entries. One entry per sprint or significant feature.
 **Files created:** `backend/docs/FEATURE_LOG.md` (this file)
 
 **Files modified:** `backend/src/constants/index.js`, `backend/src/services/auth.service.js`, `backend/src/controllers/auth.controller.js`, `backend/src/services/report.service.js`, `backend/src/services/verification.service.js`
+
+---
+
+## Sprint 3 — Full-Text Search + Compression + Security Hardening
+**Date:** 2026-05-26
+**Branch:** feature/backend
+
+**What was built:**
+
+- Created `backend/src/db/migrations/003_search_vectors.sql`: adds `search_vector tsvector` column to `reports`, GIN index on that column, and a trigger (`reports_search_update`) that populates the column automatically on INSERT/UPDATE from `business_name`, `description`, and `phone`.
+
+- Updated `backend/src/models/company.model.js`: `searchEntities()` now uses Supabase `.textSearch('search_vector', query)` instead of ILIKE. This uses the GIN index and avoids sequential scans.
+
+- Added `sanitiseSearchQuery()` to `backend/src/utils/validators.js`: strips tsquery operator characters (`!`, `'`, `(`, `)`, `*`, `:`, `&`, `|`, `<`, `>`, `\`), enforces max 100 chars, collapses whitespace.
+
+- Updated `backend/src/controllers/company.controller.js`: calls `sanitiseSearchQuery()` before passing the query to the model. Rejects empty string after sanitisation.
+
+- Installed `compression` npm package. Added `compression()` middleware to `app.js` before routes.
+
+- Added `server.setTimeout(10000, ...)` in `server.js` using Node.js-native TCP timeout — writes raw HTTP 503 and destroys socket for any request exceeding 10 seconds. No external package required.
+
+- Security grep audit fixes:
+  - `backend/src/config/supabase.js`: replaced `throw new Error()` with `process.stderr.write + process.exit(1)` (matching server.js startup pattern).
+  - `backend/src/middlewares/security.js`: replaced `callback(new Error(...))` in CORS origin check with `callback(forbidden(...))` using AppError factory. Imported `{ forbidden }` from `../errors/AppError`.
+
+- Env var audit: added `NODE_ENV` and `PINO_LEVEL` to `backend/.env.example` — both were used in `process.env.*` but undocumented.
+
+- Created `backend/docs/SECURITY.md`: 16-section comprehensive security posture document covering middleware order, JWT, Zod, rate limiting, Paystack HMAC, error handling contract, AppError usage, audit log event catalogue, RLS posture, secrets management, logging rules, search sanitisation, timeout, compression, credential leak response, and security test cases.
+
+**Design decisions (approved via Claude.ai before execution):**
+- `phone` added to tsvector alongside `business_name` and `description` — it is the primary lookup key for scammer identification.
+- `connect-timeout` package rejected in favour of `server.setTimeout()` (Node.js-native, no external package, operates at TCP level).
+
+**Human tasks required:**
+- [HUMAN — SUPABASE] Run `003_search_vectors.sql` in Supabase SQL Editor on both trustbase-prod and trustbase-test.
+- [HUMAN — SUPABASE] Run backfill query: `UPDATE reports SET search_vector = to_tsvector('pg_catalog.english', coalesce(business_name, '') || ' ' || coalesce(description, '') || ' ' || coalesce(phone, ''));`
+
+**Files created:** `backend/src/db/migrations/003_search_vectors.sql`, `backend/docs/SECURITY.md`
+
+**Files modified:** `backend/src/models/company.model.js`, `backend/src/utils/validators.js`, `backend/src/controllers/company.controller.js`, `backend/src/app.js`, `backend/src/server.js`, `backend/src/config/supabase.js`, `backend/src/middlewares/security.js`, `backend/.env.example`, `backend/docs/FEATURE_LOG.md`

@@ -1,10 +1,7 @@
-// Central security middleware stack.
-// Mount ALL of these in app.js before any routes.
-// Install: npm install helmet hpp express-rate-limit
-
 const helmet = require('helmet');
 const hpp = require('hpp');
 const { v4: uuidv4 } = require('uuid');
+const { forbidden } = require('../errors/AppError');
 
 // ─── 1. Security Headers (helmet) ────────────────────────────────────────────
 // Sets 11+ HTTP headers that block common web attacks:
@@ -41,7 +38,7 @@ const corsOptions = {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error(`Origin ${origin} not allowed by CORS`));
+      callback(forbidden('Origin not allowed by CORS'));
     }
   },
   credentials: true,                          // allow cookies / Authorization header

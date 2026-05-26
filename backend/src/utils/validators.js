@@ -51,10 +51,24 @@ const updateProfileSchema = z
   })
   .strip();
 
+const SEARCH_MAX_LENGTH = 100;
+const TSQUERY_SPECIAL_CHARS = /[!'()*:&|<>\\]/g;
+
+function sanitiseSearchQuery(raw) {
+  if (typeof raw !== 'string') {return '';}
+  return raw
+    .trim()
+    .slice(0, SEARCH_MAX_LENGTH)
+    .replace(TSQUERY_SPECIAL_CHARS, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 module.exports = {
   signupSchema,
   loginSchema,
   reportSchema,
   verificationSchema,
   updateProfileSchema,
+  sanitiseSearchQuery,
 };

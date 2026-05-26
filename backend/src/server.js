@@ -17,3 +17,8 @@ const server = http.createServer(app);
 initSockets(server);
 
 server.listen(PORT);
+
+server.setTimeout(10000, (socket) => {
+  socket.write('HTTP/1.1 503 Service Unavailable\r\nContent-Type: application/json\r\n\r\n{"success":false,"message":"Request timed out"}');
+  socket.destroy();
+});
