@@ -1,11 +1,14 @@
 const { searchEntities, getVerifiedUsers, getVerifiedUserById } = require('../models/company.model');
 const { success, error } = require('../utils/response');
+const { sanitiseSearchQuery } = require('../utils/validators');
 
 async function searchCompanies(req, res, next) {
   try {
     const { q } = req.query;
     if (!q || q.length < 2) {return error(res, 'Query must be at least 2 characters', 400);}
-    const results = await searchEntities(q);
+    const sanitised = sanitiseSearchQuery(q);
+    if (!sanitised) {return error(res, 'Query must be at least 2 characters', 400);}
+    const results = await searchEntities(sanitised);
     return success(res, { results });
   } catch (err) {
     return next(err);

@@ -4,7 +4,7 @@ async function searchEntities(query) {
   const { data, error } = await supabase
     .from('reports')
     .select('phone, business_name, scam_type, risk_level, created_at')
-    .or(`phone.ilike.%${query}%,business_name.ilike.%${query}%`)
+    .textSearch('search_vector', query)
     .eq('status', 'published')
     .limit(20);
   if (error) {throw error;}

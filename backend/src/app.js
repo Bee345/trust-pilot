@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 const Sentry = require('@sentry/node');
 
 if (process.env.SENTRY_DSN) {
@@ -34,6 +35,9 @@ app.use('/api/verify/webhook', express.raw({ type: 'application/json' }));
 // ─── Body Parsing ─────────────────────────────────────────────────────────────
 app.use(express.json({ limit: jsonLimit }));
 app.use(express.urlencoded({ extended: true, limit: urlencodedLimit }));
+
+// ─── Compression ─────────────────────────────────────────────────────────────
+app.use(compression());
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 const { version } = require('../package.json');
