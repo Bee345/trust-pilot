@@ -17,7 +17,7 @@ export default function Home() {
     : 'Me';
 
   useEffect(() => {
-    api.get('/api/reviews?limit=3')
+    api.get('/api/reviews?limit=5')
       .then(res => {
         const list = Array.isArray(res) ? res : (res?.reports ?? []);
         setRecentReports(list);
@@ -36,8 +36,8 @@ export default function Home() {
     if (e.key === 'Enter') handleSearch();
   };
 
-  const riskColor = (level) => level === 'HIGH' ? '#E53935' : level === 'MEDIUM' ? '#FF9800' : '#00C853';
-  const riskBg   = (level) => level === 'HIGH' ? '#FFF5F5' : level === 'MEDIUM' ? '#FFF8F0' : '#F0FFF4';
+  const riskColor = (level) => level === 'high' ? '#E53935' : level === 'medium' ? '#FF9800' : '#00C853';
+  const riskBg   = (level) => level === 'high' ? '#FFF5F5' : level === 'medium' ? '#FFF8F0' : '#F0FFF4';
 
   return (
     <div style={{ background: '#F5F6FA', minHeight: '100vh' }}>
@@ -239,7 +239,10 @@ export default function Home() {
                       {report.risk_level || 'UNKNOWN'}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', gap: '12px' }}>
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', color: '#8896A5', fontWeight: '500' }}>
+                      {report.scam_type}
+                    </span>
                     {report.amount_lost && (
                       <span style={{ fontSize: '12px', color: '#E53935', fontWeight: '600' }}>
                         ₦{Number(report.amount_lost).toLocaleString()} lost
