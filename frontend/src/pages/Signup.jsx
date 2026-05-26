@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, ShieldCheck, ArrowRight, Phone, User, Lock } from 'lucide-react';
 import { api } from '../lib/api';
+import { useAuth } from '../hooks/useAuth';
 
-export default function Signup({ onLogin }) {
+export default function Signup() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({ name: '', phone: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -17,9 +19,7 @@ export default function Signup({ onLogin }) {
     setError('');
     try {
       const data = await api.post('/api/auth/signup', formData);
-      localStorage.setItem('trustbase_token', data.token);
-      localStorage.setItem('trustbase_user', JSON.stringify(data.user));
-      onLogin(data.user);
+      login(data.user, data.token);
       navigate('/home');
     } catch (err) {
       setError(err.message);
@@ -100,7 +100,7 @@ export default function Signup({ onLogin }) {
         <p style={{ fontSize: '13px', color: '#8896A5', marginBottom: '24px' }}>It's free and takes less than a minute</p>
 
         {error && (
-          <div style={{
+          <div role="alert" id="signup-error" style={{
             background: '#FFF5F5', border: '1px solid #FFC5C5', borderRadius: '10px',
             padding: '12px 14px', fontSize: '13px', color: '#C62828', marginBottom: '8px',
           }}>

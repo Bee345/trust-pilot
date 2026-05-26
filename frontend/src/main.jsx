@@ -13,6 +13,7 @@ if (import.meta.env.VITE_SENTRY_DSN) {
   });
 }
 
+// Sprint 5: wrap App in <Sentry.ErrorBoundary> once VITE_SENTRY_DSN is provisioned
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <App />

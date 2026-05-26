@@ -4,7 +4,8 @@ const { success, error } = require('../utils/response');
 async function submitReport(req, res, next) {
   try {
     const userId = req.user ? req.user.sub : null;
-    const report = await reportService.submitReport(req.validatedBody, userId);
+    const context = { ipAddress: req.ip, userAgent: req.headers['user-agent'] };
+    const report = await reportService.submitReport(req.validatedBody, userId, context);
     success(res, { report }, 201);
   } catch (err) {
     next(err);

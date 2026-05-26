@@ -33,7 +33,7 @@ export default function ReportsList() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    Promise.resolve().then(() => setLoading(true));
     api.get(`/api/reviews?page=${page}&limit=20`)
       .then(data => {
         if (cancelled) return;
@@ -72,6 +72,7 @@ export default function ReportsList() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
           <button
             onClick={() => navigate(-1)}
+            aria-label="Go back"
             style={{
               background: '#F5F6FA', border: 'none', borderRadius: '10px',
               width: '38px', height: '38px',
@@ -152,7 +153,7 @@ export default function ReportsList() {
       {/* Report Cards */}
       <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {loading && (
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: '#8896A5' }}>
+          <div aria-live="polite" style={{ textAlign: 'center', padding: '40px 20px', color: '#8896A5' }}>
             Loading reports...
           </div>
         )}

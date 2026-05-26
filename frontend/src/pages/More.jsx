@@ -1,10 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ChevronRight, ShieldCheck, Info, HelpCircle, 
-  Headphones, FileBadge, FileText, Settings, 
-  Share2, Star, LogOut, Bell, Lock, Eye 
+import {
+  ChevronRight, ShieldCheck, Info, HelpCircle,
+  Headphones, FileBadge, FileText, Settings,
+  Share2, Star, LogOut, Bell, Lock, Eye
 } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 function MenuSection({ title, children }) {
   return (
@@ -23,7 +24,8 @@ function MenuSection({ title, children }) {
   );
 }
 
-function MenuItem({ icon: Icon, iconBg, title, subtitle, onClick, badge, isDestructive = false }) {
+function MenuItem({ icon, iconBg, title, subtitle, onClick, badge, isDestructive = false }) {
+  const Icon = icon;
   return (
     <div 
       onClick={onClick}
@@ -73,8 +75,14 @@ function MenuItem({ icon: Icon, iconBg, title, subtitle, onClick, badge, isDestr
   );
 }
 
+function getInitials(name) {
+  if (!name) return '?';
+  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+}
+
 export default function More() {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   return (
     <div style={{ background: '#F5F6FA', minHeight: '100vh' }}>
@@ -126,7 +134,7 @@ export default function More() {
               fontSize: '20px', fontWeight: '800', color: 'white',
               boxShadow: '0 4px 14px rgba(229,57,53,0.3)',
             }}>
-              JD
+              {getInitials(user?.name)}
             </div>
             {/* Unverified badge */}
             <div style={{
@@ -142,9 +150,9 @@ export default function More() {
 
           <div style={{ flex: 1, minWidth: 0 }}>
             <h2 style={{ fontSize: '16px', fontWeight: '800', color: '#1A2B3C', margin: '0 0 2px 0' }}>
-              John Doe
+              {user?.name || 'Loading...'}
             </h2>
-            <p style={{ fontSize: '13px', color: '#8896A5', margin: '0 0 8px 0' }}>08012345678</p>
+            <p style={{ fontSize: '13px', color: '#8896A5', margin: '0 0 8px 0' }}>{user?.phone || ''}</p>
             <div style={{ display: 'flex', gap: '6px' }}>
               <span style={{
                 background: '#FFF3E0', color: '#FF9800',
@@ -152,13 +160,6 @@ export default function More() {
                 padding: '3px 8px', borderRadius: '20px',
               }}>
                 Unverified
-              </span>
-              <span style={{
-                background: '#F0F4FF', color: '#1565C0',
-                fontSize: '10px', fontWeight: '700',
-                padding: '3px 8px', borderRadius: '20px',
-              }}>
-                3 Reports
               </span>
             </div>
           </div>
@@ -212,11 +213,10 @@ export default function More() {
             title="My Verifications" subtitle="Track your verification status"
             onClick={() => navigate('/verification-status')} 
           />
-          <MenuItem 
-            icon={FileText} iconBg="#FFF5F5" 
+          <MenuItem
+            icon={FileText} iconBg="#FFF5F5"
             title="My Reports" subtitle="View and manage your submitted reports"
-            onClick={() => navigate('/my-reports')} 
-            badge="3"
+            onClick={() => navigate('/my-reports')}
           />
           <MenuItem 
             icon={Bell} iconBg="#FFF8F0" title="Notifications" subtitle="Manage alerts and updates"
@@ -246,6 +246,7 @@ export default function More() {
               iconBg="#FFE8E8"
               title="Log Out"
               isDestructive
+              onClick={() => { logout(); navigate('/login', { replace: true }); }}
             />
           </div>
           <p style={{ textAlign: 'center', fontSize: '11px', color: '#B0BEC5', marginTop: '20px' }}>

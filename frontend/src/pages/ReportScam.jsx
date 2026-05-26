@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Camera, Phone, Briefcase, AlertCircle, CheckCircle2, Upload, X } from 'lucide-react';
+import { ArrowLeft, Camera, Phone, Briefcase, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { api } from '../lib/api';
 
 const SCAM_TYPES = [
@@ -14,6 +14,36 @@ const SCAM_TYPES = [
   'Other',
 ];
 
+const PHONE_REGEX = /^(0[7-9][0-1]\d{8})$/;
+
+function validateStep(stepNum, formData) {
+  const errs = {};
+  if (stepNum === 1) {
+    if (!formData.phone) {
+      errs.phone = 'Phone number is required';
+    } else if (!PHONE_REGEX.test(formData.phone)) {
+      errs.phone = 'Enter a valid Nigerian phone number (e.g. 08012345678)';
+    }
+    if (!formData.scamType) {
+      errs.scamType = 'Please select a scam type';
+    }
+  }
+  if (stepNum === 2) {
+    if (!formData.description || formData.description.trim().length < 20) {
+      errs.description = 'Description must be at least 20 characters';
+    }
+    if (!formData.amount || Number(formData.amount) <= 0) {
+      errs.amount = 'Please enter the amount lost (must be a positive number)';
+    }
+  }
+  if (stepNum === 3) {
+    if (!formData.evidence) {
+      errs.evidence = 'Please upload evidence before submitting';
+    }
+  }
+  return errs;
+}
+
 export default function ReportScam() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -25,18 +55,33 @@ export default function ReportScam() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [riskLevel, setRiskLevel] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) { return; }
+    setForm(prev => ({ ...prev, evidence: { name: file.name, size: file.size, type: file.type } }));
+  };
 
   const handleNext = () => {
+    const errs = validateStep(step, form);
+    setFieldErrors(errs);
+    if (Object.keys(errs).length > 0) return;
     if (step < 3) setStep(step + 1);
   };
 
   const handleBack = () => {
+    setFieldErrors({});
     if (step > 1) setStep(step - 1);
     else navigate(-1);
   };
 
   const handleSubmit = async () => {
+    const errs = validateStep(3, form);
+    setFieldErrors(errs);
+    if (Object.keys(errs).length > 0) return;
     setError('');
     setLoading(true);
     try {
@@ -47,12 +92,17 @@ export default function ReportScam() {
         description: form.description,
         amountLost: form.amount ? Number(form.amount) : undefined,
         anonymous: form.anonymous,
+        evidenceFilename: form.evidence?.name || null,
       };
       const res = await api.post('/api/reviews', payload);
       setRiskLevel(res?.report?.risk_level ?? null);
       setSubmitted(true);
     } catch (err) {
-      setError(err.message || 'Failed to submit report');
+      if (err.status === 409) {
+        setError('You have already submitted a report for this number recently. Please wait before submitting again.');
+      } else {
+        setError(err.message || 'Failed to submit report');
+      }
     } finally {
       setLoading(false);
     }
@@ -180,6 +230,7 @@ export default function ReportScam() {
         flex: 1, background: 'white',
         borderRadius: '24px 24px 0 0',
         marginTop: '-20px', padding: '24px',
+        paddingBottom: '80px',
         boxShadow: '0 -4px 20px rgba(0,0,0,0.05)',
         position: 'relative', zIndex: 10,
       }}>
@@ -201,8 +252,9 @@ export default function ReportScam() {
                 placeholder="e.g. 08012345678"
                 value={form.phone}
                 onChange={e => setForm({...form, phone: e.target.value})}
-                style={{ borderRadius: '12px' }}
+                style={{ borderRadius: '12px', borderColor: fieldErrors.phone ? '#C62828' : undefined }}
               />
+              {fieldErrors.phone && <p style={{ fontSize: '12px', color: '#C62828', margin: '4px 0 0 0' }}>{fieldErrors.phone}</p>}
             </div>
 
             <div style={{ marginBottom: '16px' }}>
@@ -246,6 +298,7 @@ export default function ReportScam() {
                   </button>
                 ))}
               </div>
+              {fieldErrors.scamType && <p style={{ fontSize: '12px', color: '#C62828', margin: '8px 0 0 0' }}>{fieldErrors.scamType}</p>}
             </div>
           </div>
         )}
@@ -268,10 +321,11 @@ export default function ReportScam() {
               <p style={{ fontSize: '11px', color: '#B0BEC5', marginTop: '4px' }}>
                 {form.description.length}/500 characters
               </p>
+              {fieldErrors.description && <p style={{ fontSize: '12px', color: '#C62828', margin: '4px 0 0 0' }}>{fieldErrors.description}</p>}
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label className="form-label">Amount Lost (Optional)</label>
+              <label className="form-label">Amount Lost *</label>
               <div style={{ position: 'relative' }}>
                 <div style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', fontWeight: '700', color: '#1A2B3C' }}>
                   ₦
@@ -282,9 +336,10 @@ export default function ReportScam() {
                   placeholder="0"
                   value={form.amount}
                   onChange={e => setForm({...form, amount: e.target.value})}
-                  style={{ paddingLeft: '32px', borderRadius: '12px' }}
+                  style={{ paddingLeft: '32px', borderRadius: '12px', borderColor: fieldErrors.amount ? '#C62828' : undefined }}
                 />
               </div>
+              {fieldErrors.amount && <p style={{ fontSize: '12px', color: '#C62828', margin: '4px 0 0 0' }}>{fieldErrors.amount}</p>}
             </div>
 
             {/* Anonymous toggle */}
@@ -335,43 +390,61 @@ export default function ReportScam() {
             <p style={{ fontSize: '13px', color: '#8896A5', marginBottom: '24px' }}>Screenshots or photos help strengthen your report</p>
 
             {/* Upload Area */}
-            <div style={{
-              border: '2px dashed #E0E4EC',
-              borderRadius: '16px',
-              padding: '32px',
-              textAlign: 'center',
-              background: '#FAFBFC',
-              cursor: 'pointer',
-              marginBottom: '20px',
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#E53935'; e.currentTarget.style.background = '#FFF5F5'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#E0E4EC'; e.currentTarget.style.background = '#FAFBFC'; }}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={handleFileSelect}
+              style={{ display: 'none' }}
+            />
+            <div
+              role="button"
+              aria-label="Upload evidence file"
+              tabIndex={0}
+              style={{
+                border: `2px dashed ${form.evidence ? '#00C853' : '#E0E4EC'}`,
+                borderRadius: '16px',
+                padding: '32px',
+                textAlign: 'center',
+                background: form.evidence ? '#F0FFF4' : '#FAFBFC',
+                cursor: 'pointer',
+                marginBottom: '20px',
+                transition: 'all 0.2s ease',
+              }}
+              onClick={() => fileInputRef.current.click()}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { fileInputRef.current.click(); } }}
+              onMouseEnter={e => { if (!form.evidence) { e.currentTarget.style.borderColor = '#E53935'; e.currentTarget.style.background = '#FFF5F5'; } }}
+              onMouseLeave={e => { if (!form.evidence) { e.currentTarget.style.borderColor = '#E0E4EC'; e.currentTarget.style.background = '#FAFBFC'; } }}
             >
               <div style={{
                 width: '60px', height: '60px',
-                background: 'linear-gradient(135deg, #E53935, #C62828)',
+                background: form.evidence ? 'linear-gradient(135deg, #00C853, #1B5E20)' : 'linear-gradient(135deg, #E53935, #C62828)',
                 borderRadius: '16px',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 margin: '0 auto 12px',
               }}>
-                <Camera size={28} color="white" />
+                {form.evidence ? <CheckCircle2 size={28} color="white" /> : <Camera size={28} color="white" />}
               </div>
-              <p style={{ fontSize: '15px', fontWeight: '700', color: '#1A2B3C', margin: '0 0 4px 0' }}>
-                Upload Evidence
-              </p>
-              <p style={{ fontSize: '12px', color: '#8896A5', margin: '0 0 12px 0' }}>
-                Tap to upload screenshots, chat logs, or receipts
-              </p>
-              <span style={{
-                background: '#FFF5F5', color: '#E53935',
-                fontSize: '12px', fontWeight: '600',
-                padding: '6px 16px', borderRadius: '20px',
-                border: '1px solid rgba(229,57,53,0.2)',
-              }}>
-                Choose Files
-              </span>
+              {form.evidence ? (
+                <>
+                  <p style={{ fontSize: '15px', fontWeight: '700', color: '#1B5E20', margin: '0 0 4px 0' }}>File Selected</p>
+                  <p style={{ fontSize: '12px', color: '#2E7D32', margin: '0 0 12px 0', wordBreak: 'break-all' }}>{form.evidence.name}</p>
+                  <span style={{ background: '#E8F5E9', color: '#00C853', fontSize: '12px', fontWeight: '600', padding: '6px 16px', borderRadius: '20px', border: '1px solid rgba(0,200,83,0.2)' }}>
+                    Change File
+                  </span>
+                </>
+              ) : (
+                <>
+                  <p style={{ fontSize: '15px', fontWeight: '700', color: '#1A2B3C', margin: '0 0 4px 0' }}>Upload Evidence</p>
+                  <p style={{ fontSize: '12px', color: '#8896A5', margin: '0 0 12px 0' }}>Tap to upload screenshots, chat logs, or receipts</p>
+                  <span style={{ background: '#FFF5F5', color: '#E53935', fontSize: '12px', fontWeight: '600', padding: '6px 16px', borderRadius: '20px', border: '1px solid rgba(229,57,53,0.2)' }}>
+                    Choose File
+                  </span>
+                </>
+              )}
             </div>
+
+            {fieldErrors.evidence && <p style={{ fontSize: '12px', color: '#C62828', margin: '-12px 0 16px 0' }}>{fieldErrors.evidence}</p>}
 
             {/* Review Summary */}
             <div style={{
@@ -414,7 +487,7 @@ export default function ReportScam() {
         )}
 
         {error && (
-          <div style={{
+          <div role="alert" style={{
             background: '#FFF5F5', border: '1px solid #FFC5C5', borderRadius: '10px',
             padding: '12px 14px', fontSize: '13px', color: '#C62828', marginBottom: '12px',
           }}>
@@ -443,7 +516,7 @@ export default function ReportScam() {
             type="button"
             onClick={step < 3 ? handleNext : handleSubmit}
             className="btn-primary"
-            disabled={loading || (step === 1 && !form.phone)}
+            disabled={loading}
             style={{ flex: 2, borderRadius: '14px', fontSize: '15px', padding: '15px' }}
           >
             {loading ? (

@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, ShieldCheck, ArrowRight, Phone, Lock, ChevronLeft } from 'lucide-react';
+import { Eye, EyeOff, ShieldCheck, ArrowRight, Phone, Lock } from 'lucide-react';
 import { api } from '../lib/api';
+import { useAuth } from '../hooks/useAuth';
 
-export default function Login({ onLogin }) {
+export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({ phone: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -17,12 +19,16 @@ export default function Login({ onLogin }) {
     setError('');
     try {
       const data = await api.post('/api/auth/login', formData);
-      localStorage.setItem('trustbase_token', data.token);
-      localStorage.setItem('trustbase_user', JSON.stringify(data.user));
-      onLogin(data.user);
+      login(data.user, data.token);
       navigate('/home');
     } catch (err) {
-      setError(err.message);
+      if (err.status === 401) {
+        setError('Invalid phone number or password');
+      } else if (err.status === 429 || err.message?.includes('Try again in')) {
+        setError(err.message);
+      } else {
+        setError('Something went wrong. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -93,7 +99,7 @@ export default function Login({ onLogin }) {
         <p style={{ fontSize: '13px', color: '#8896A5', marginBottom: '24px' }}>Enter your credentials to continue</p>
 
         {error && (
-          <div style={{
+          <div role="alert" id="login-error" style={{
             background: '#FFF5F5', border: '1px solid #FFC5C5', borderRadius: '10px',
             padding: '12px 14px', fontSize: '13px', color: '#C62828', marginBottom: '8px',
           }}>

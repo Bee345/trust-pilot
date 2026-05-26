@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Bell, ShieldCheck, AlertTriangle, Zap } from 'lucide-react';
 import { api } from '../lib/api';
+import { timeAgo } from '../utils/format';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,14 +39,6 @@ export default function Home() {
   const riskColor = (level) => level === 'HIGH' ? '#E53935' : level === 'MEDIUM' ? '#FF9800' : '#00C853';
   const riskBg   = (level) => level === 'HIGH' ? '#FFF5F5' : level === 'MEDIUM' ? '#FFF8F0' : '#F0FFF4';
 
-  const timeAgo = (dateStr) => {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const h = Math.floor(diff / 3600000);
-    if (h < 1) return 'Just now';
-    if (h < 24) return `${h}h ago`;
-    return `${Math.floor(h / 24)}d ago`;
-  };
-
   return (
     <div style={{ background: '#F5F6FA', minHeight: '100vh' }}>
 
@@ -75,7 +68,7 @@ export default function Home() {
             </h1>
           </div>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <button onClick={() => navigate('/notifications')} style={{
+            <button onClick={() => navigate('/notifications')} aria-label="Notifications" style={{
               width: '38px', height: '38px',
               background: 'rgba(255,255,255,0.15)',
               borderRadius: '50%', border: 'none',
@@ -206,7 +199,7 @@ export default function Home() {
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '24px', color: '#8896A5', fontSize: '13px' }}>Loading...</div>
+          <div aria-live="polite" style={{ textAlign: 'center', padding: '24px', color: '#8896A5', fontSize: '13px' }}>Loading...</div>
         ) : recentReports.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '24px', color: '#8896A5', fontSize: '13px' }}>No reports yet</div>
         ) : (

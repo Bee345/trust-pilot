@@ -101,7 +101,7 @@ export default function GetVerified() {
       <div style={{ background: '#F5F6FA', minHeight: '100vh' }}>
         <div style={{ background: plan.gradient, padding: '20px 20px 40px', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', right: '-40px', top: '-40px', width: '150px', height: '150px', borderRadius: '50%', background: 'rgba(255,255,255,0.07)' }}/>
-          <button onClick={() => setStep('select')} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '10px', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginBottom: '16px' }}>
+          <button onClick={() => setStep('select')} aria-label="Go back" style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '10px', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginBottom: '16px' }}>
             <ArrowLeft size={20} color="white" />
           </button>
           <h1 style={{ color: 'white', fontSize: '22px', fontWeight: '800', margin: '0 0 4px 0' }}>Complete Payment</h1>
