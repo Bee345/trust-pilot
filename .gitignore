@@ -3,6 +3,7 @@ node_modules/
 .DS_Store
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json
 .idea/
 .husky/_
 *.patch
