@@ -4,6 +4,7 @@ import { ArrowLeft, Edit2, Camera, MapPin, Phone, Mail, ShieldCheck, Star, FileT
 import { api } from '../lib/api';
 import { useReports } from '../hooks/useReports';
 import { timeAgo } from '../utils/format';
+import ReportDetailModal from '../components/ReportDetailModal';
 
 const REPORT_STATUS_STYLE = {
   pending:      { label: 'Pending',      color: '#FF9800', bg: '#FFF8F0' },
@@ -15,6 +16,7 @@ const REPORT_STATUS_STYLE = {
 export default function Profile() {
   const navigate = useNavigate();
   const { reports, loading: reportsLoading } = useReports({ mine: true, limit: 5 });
+  const [selectedReport, setSelectedReport] = useState(null);
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
@@ -297,7 +299,15 @@ export default function Profile() {
           const target = r.phone || r.business_name || 'Unknown';
           const statusStyle = REPORT_STATUS_STYLE[r.status] || { label: r.status, color: '#546E7A', bg: '#F5F6FA' };
           return (
-            <div key={r.id} style={{ background: 'white', borderRadius: '14px', padding: '14px', display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px', border: '1px solid #ECEFF1', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+            <div
+              key={r.id}
+              role="button"
+              tabIndex={0}
+              aria-label={`View details for ${r.business_name || r.phone || 'report'}`}
+              onClick={() => setSelectedReport(r)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedReport(r); } }}
+              style={{ background: 'white', borderRadius: '14px', padding: '14px', display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px', border: '1px solid #ECEFF1', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer' }}
+            >
               <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#FFF5F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <FileText size={18} color="#E53935" />
               </div>
@@ -310,6 +320,11 @@ export default function Profile() {
           );
         })}
       </div>
+
+      <ReportDetailModal
+        report={selectedReport}
+        onClose={() => setSelectedReport(null)}
+      />
     </div>
   );
 }

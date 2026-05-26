@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, AlertTriangle, Search, MapPin, Clock } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, Search, Clock } from 'lucide-react';
 import { api } from '../lib/api';
+import ReportDetailModal from '../components/ReportDetailModal';
 
 const RISK_COLORS = {
   high: { bg: '#FFF5F5', text: '#E53935', border: 'rgba(229,57,53,0.15)', label: 'HIGH RISK' },
@@ -30,6 +31,7 @@ export default function ReportsList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
+  const [selectedReport, setSelectedReport] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -178,6 +180,11 @@ export default function ReportsList() {
           return (
             <div
               key={report.id}
+              role="button"
+              tabIndex={0}
+              aria-label={`View details for ${report.business_name || report.phone || 'report'}`}
+              onClick={() => setSelectedReport(report)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedReport(report); } }}
               style={{
                 background: 'white',
                 borderRadius: '18px',
@@ -292,6 +299,11 @@ export default function ReportsList() {
           ⚠️ Report
         </button>
       </div>
+
+      <ReportDetailModal
+        report={selectedReport}
+        onClose={() => setSelectedReport(null)}
+      />
     </div>
   );
 }

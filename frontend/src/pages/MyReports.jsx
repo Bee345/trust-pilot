@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, CheckCircle2, Plus, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Clock, CheckCircle2, Plus } from 'lucide-react';
 import { useReports } from '../hooks/useReports';
+import ReportDetailModal from '../components/ReportDetailModal';
 
 const STATUS_CONFIG = {
   under_review: { label: 'Under Review', bg: '#FFF8F0', color: '#FF9800', icon: <Clock size={12} color="#FF9800" /> },
@@ -24,6 +25,7 @@ export default function MyReports() {
   const navigate = useNavigate();
   const [tab, setTab] = useState('reports');
   const { reports, loading, error } = useReports({ mine: true });
+  const [selectedReport, setSelectedReport] = useState(null);
 
   const totalUpvotes = reports.reduce((acc, r) => acc + (r.upvote_count ?? 0), 0);
   const published = reports.filter(r => r.status === 'published').length;
@@ -116,12 +118,21 @@ export default function MyReports() {
               {reports.map((report) => {
                 const statusConf = STATUS_CONFIG[report.status] ?? STATUS_CONFIG.under_review;
                 return (
-                  <div key={report.id} style={{
-                    background: 'white', borderRadius: '18px',
-                    border: '1px solid #ECEFF1',
-                    overflow: 'hidden',
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
-                  }}>
+                  <div
+                    key={report.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View details for ${report.business_name || report.phone || 'report'}`}
+                    onClick={() => setSelectedReport(report)}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedReport(report); } }}
+                    style={{
+                      background: 'white', borderRadius: '18px',
+                      border: '1px solid #ECEFF1',
+                      overflow: 'hidden',
+                      boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
+                      cursor: 'pointer',
+                    }}
+                  >
                     <div style={{ height: '3px', background: report.status === 'published' ? 'linear-gradient(90deg, #00C853, #1B5E20)' : 'linear-gradient(90deg, #FF9800, #E65100)' }}/>
                     <div style={{ padding: '16px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
@@ -177,6 +188,11 @@ export default function MyReports() {
           )}
         </div>
       </div>
+
+      <ReportDetailModal
+        report={selectedReport}
+        onClose={() => setSelectedReport(null)}
+      />
     </div>
   );
 }
