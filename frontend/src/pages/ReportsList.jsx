@@ -36,7 +36,8 @@ export default function ReportsList() {
   useEffect(() => {
     let cancelled = false;
     Promise.resolve().then(() => setLoading(true));
-    api.get(`/api/reviews?page=${page}&limit=20`)
+    const riskParam = activeFilter !== 'all' ? `&risk_level=${activeFilter}` : '';
+    api.get(`/api/reviews?page=${page}&limit=20${riskParam}`)
       .then(data => {
         if (cancelled) return;
         setReports(data?.reports ?? []);
@@ -44,20 +45,18 @@ export default function ReportsList() {
       .catch(err => !cancelled && setError(err.message))
       .finally(() => !cancelled && setLoading(false));
     return () => { cancelled = true; };
-  }, [page]);
+  }, [page, activeFilter]);
 
   const filters = [
     { key: 'all', label: 'All' },
     { key: 'high', label: 'High Risk' },
-    { key: 'medium', label: 'Caution' },
+    { key: 'medium', label: 'Medium' },
+    { key: 'low', label: 'Low Risk' },
   ];
 
   const filtered = reports.filter(r => {
-    const risk = r.risk_level || 'low';
-    const matchFilter = activeFilter === 'all' || risk === activeFilter;
     const haystack = `${r.business_name || ''} ${r.phone || ''} ${r.description || ''}`.toLowerCase();
-    const matchSearch = !searchQuery || haystack.includes(searchQuery.toLowerCase());
-    return matchFilter && matchSearch;
+    return !searchQuery || haystack.includes(searchQuery.toLowerCase());
   });
 
   return (
@@ -114,7 +113,7 @@ export default function ReportsList() {
           {filters.map(f => (
             <button
               key={f.key}
-              onClick={() => setActiveFilter(f.key)}
+              onClick={() => { setActiveFilter(f.key); setPage(1); }}
               style={{
                 padding: '6px 14px',
                 borderRadius: '20px',
@@ -144,7 +143,7 @@ export default function ReportsList() {
         <AlertTriangle size={20} color="#FFD700" fill="rgba(255,215,0,0.3)" />
         <div>
           <p style={{ color: 'white', fontWeight: '700', fontSize: '13px', margin: 0 }}>
-            {filtered.filter(r => r.risk === 'high').length} High Risk Reports in your area
+            {filtered.filter(r => r.risk_level === 'high').length} High Risk Reports in your area
           </p>
           <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: '11px', margin: 0 }}>
             Stay safe — always verify before sending money
