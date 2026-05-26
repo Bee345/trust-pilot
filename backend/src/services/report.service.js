@@ -73,8 +73,8 @@ async function searchEntity(query) {
   return { query, reports: existingReports, riskAssessment };
 }
 
-async function listRecentReports({ page, limit }) {
-  return getRecentReports({ page, limit });
+async function listRecentReports({ page, limit, riskLevel }) {
+  return getRecentReports({ page, limit, riskLevel });
 }
 
 async function upvoteReportById(reportId, userId) {
