@@ -88,3 +88,55 @@ Append-only. Never delete entries. One entry per sprint or significant feature.
 **Files created:** `backend/src/db/migrations/003_search_vectors.sql`, `backend/docs/SECURITY.md`
 
 **Files modified:** `backend/src/models/company.model.js`, `backend/src/utils/validators.js`, `backend/src/controllers/company.controller.js`, `backend/src/app.js`, `backend/src/server.js`, `backend/src/config/supabase.js`, `backend/src/middlewares/security.js`, `backend/.env.example`, `backend/docs/FEATURE_LOG.md`
+
+---
+
+## Phone Search Fix — Status Filter Alignment
+**Date:** 2026-05-27
+**Branch:** feature/backend (PR #10)
+
+**What was built:**
+- Fixed `getReportsByPhone()` in `report.model.js`: changed `.eq('status', 'published')` to `.neq('status', REPORT_STATUS.REJECTED)`. Phone search now returns all non-rejected reports, consistent with the home feed query `getRecentReports()`.
+- Added status flow documentation comment block in `constants/index.js` after `REPORT_STATUS`: documents the intended `pending → published → rejected` lifecycle and notes that a moderation queue is deferred.
+
+**Root cause:** All reports had `status = 'pending'` (no mechanism to set `published`), so `.eq('status', 'published')` always returned empty results.
+
+**Files modified:** `backend/src/models/report.model.js`, `backend/src/constants/index.js`
+
+---
+
+## Sprint 4 — Unit and Integration Test Suite
+**Date:** 2026-05-27
+**Branch:** feature/backend
+
+**What was built:**
+
+- Refactored `backend/src/utils/risk.js`: split monolithic `computeRiskScore` into four pure functions — `calculateBasePoints(scamType)`, `applyRecencyMultiplier(basePoints, createdAt)`, `determineLevel(score)`, and `computeRiskScore(reports)` (orchestrator). All four exported for direct unit testing.
+
+- Restructured test directory: moved flat test files into `__tests__/unit/` and `__tests__/integration/` subdirectories per CLAUDE.md specification. Updated all `require()` paths.
+
+- `__tests__/unit/risk.test.js`: 27 tests covering all four exported functions — base points for all 8 scam types + unknown, recency multiplier at boundary (29 vs 31 days), level thresholds (29/30/59/60), score cap, volume bonus, tag generation, and end-to-end computeRiskScore.
+
+- `__tests__/unit/validators.test.js`: 35 tests covering all 5 Zod schemas (signup, login, report, verification, updateProfile) and `sanitiseSearchQuery` (special chars, truncation, whitespace, non-string input).
+
+- `__tests__/unit/appError.test.js`: 11 tests covering AppError class (instanceof, properties) and all 7 factory functions (notFound, unauthorized, forbidden, conflict, badRequest, paymentRequired, tooManyRequests).
+
+- `__tests__/integration/auth.test.js`: 13 tests — signup (201, 409 duplicate, 422 invalid phone, 422 short password, password_hash exclusion), login (200, 401 wrong password, 401 nonexistent phone), /users/me (401 no token, 401 bad token), /health (200). All test phones use `07000000` prefix with `afterAll` cleanup.
+
+- `__tests__/integration/reports.test.js`: 9 tests — POST /api/reviews (201 valid, 422 invalid scam type, 422 short desc, 422 missing fields, 201 anonymous), GET /api/reviews (200 array, risk_level filter), GET /api/reviews/mine (401 no token, 200 authenticated). `07000000` prefix cleanup.
+
+- `__tests__/integration/verification.test.js`: 5 tests — POST /api/verify/webhook (401 missing sig, 401 wrong HMAC, 200 valid HMAC), POST /api/verify/initiate (401 no token), GET /api/verify/status (401 no token). Uses `PAYSTACK_SECRET` env var for HMAC computation.
+
+- Removed mock data from `frontend/src/pages/VerifiedProfile.jsx`: replaced hardcoded "Elite Fashion Store" / "elitfashion.ng" with real fetch from `GET /api/companies/verified`, loading spinner, error state, and empty state.
+
+**Test totals:** 73 unit tests pass. Integration tests (27 tests) skip gracefully when env vars are absent — they run against trustbase-test when `.env.test` is configured.
+
+**Coverage:** 100% on AppError.js, risk.js, validators.js. Full 70%+ coverage requires integration tests running with `.env.test`.
+
+**Human tasks required:**
+- [HUMAN — TERMINAL] Create `backend/.env.test` with TEST_* env vars pointing at trustbase-test (SUPABASE_URL, SUPABASE_KEY, DATABASE_URL, JWT_SECRET, PAYSTACK_SECRET=test_paystack_secret_for_ci).
+- [HUMAN — TERMINAL] Run `npm test` and `npm run test:coverage` to confirm 70%+.
+
+**Files created:** `backend/src/__tests__/unit/appError.test.js`, `backend/src/__tests__/integration/reports.test.js`, `backend/src/__tests__/integration/verification.test.js`
+
+**Files modified:** `backend/src/utils/risk.js`, `backend/src/__tests__/unit/risk.test.js` (moved + updated), `backend/src/__tests__/unit/validators.test.js` (moved + updated), `backend/src/__tests__/integration/auth.test.js` (moved + updated), `frontend/src/pages/VerifiedProfile.jsx`, `backend/docs/FEATURE_LOG.md`
