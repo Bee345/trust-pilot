@@ -16,7 +16,7 @@ async function getReportsByPhone(phone) {
     .from('reports')
     .select('*')
     .eq('phone', phone)
-    .eq('status', 'published')
+    .neq('status', REPORT_STATUS.REJECTED)
     .order('created_at', { ascending: false });
   if (error) {throw error;}
   return data;

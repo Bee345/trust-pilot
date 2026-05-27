@@ -3,7 +3,9 @@ const {
   loginSchema,
   reportSchema,
   verificationSchema,
-} = require('../utils/validators');
+  updateProfileSchema,
+  sanitiseSearchQuery,
+} = require('../../utils/validators');
 
 describe('signupSchema', () => {
   it('accepts a valid Nigerian signup payload', () => {
@@ -135,5 +137,57 @@ describe('verificationSchema', () => {
 
   it('rejects unknown type', () => {
     expect(verificationSchema.safeParse({ type: 'enterprise' }).success).toBe(false);
+  });
+});
+
+describe('updateProfileSchema', () => {
+  it('accepts a valid name', () => {
+    const result = updateProfileSchema.safeParse({ name: 'Emeka Nwankwo' });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a name shorter than 2 characters', () => {
+    const result = updateProfileSchema.safeParse({ name: 'A' });
+    expect(result.success).toBe(false);
+  });
+
+  it('strips unknown fields', () => {
+    const result = updateProfileSchema.safeParse({ name: 'Emeka', role: 'admin' });
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual({ name: 'Emeka' });
+    expect(result.data.role).toBeUndefined();
+  });
+});
+
+describe('sanitiseSearchQuery', () => {
+  it('returns a trimmed string unchanged', () => {
+    expect(sanitiseSearchQuery('lagos shop')).toBe('lagos shop');
+  });
+
+  it('strips SQL/tsquery special characters', () => {
+    expect(sanitiseSearchQuery("test'OR 1=1--")).toBe('test OR 1=1--');
+  });
+
+  it('strips ampersands, pipes, and angle brackets', () => {
+    expect(sanitiseSearchQuery('foo & bar | baz <>')).toBe('foo bar baz');
+  });
+
+  it('collapses multiple spaces into one', () => {
+    expect(sanitiseSearchQuery('   too   many    spaces   ')).toBe('too many spaces');
+  });
+
+  it('truncates input to 100 characters', () => {
+    const long = 'a'.repeat(150);
+    expect(sanitiseSearchQuery(long).length).toBe(100);
+  });
+
+  it('returns empty string for non-string input', () => {
+    expect(sanitiseSearchQuery(null)).toBe('');
+    expect(sanitiseSearchQuery(undefined)).toBe('');
+    expect(sanitiseSearchQuery(123)).toBe('');
+  });
+
+  it('handles empty string input', () => {
+    expect(sanitiseSearchQuery('')).toBe('');
   });
 });
