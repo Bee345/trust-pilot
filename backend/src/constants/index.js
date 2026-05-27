@@ -29,6 +29,14 @@ const REPORT_STATUS = Object.freeze({
   REJECTED: 'rejected',
 });
 
+// Report status flow:
+//   pending → published (future: moderation queue approves)
+//   pending → rejected  (future: moderation queue rejects)
+// Currently all reports stay 'pending' on creation.
+// Queries use .neq('rejected') so pending reports are visible.
+// A moderation queue to transition pending → published/rejected
+// is deferred to a future sprint.
+
 const RISK_LEVELS = Object.freeze({ LOW: 'low', MEDIUM: 'medium', HIGH: 'high' });
 
 const NIGERIAN_PHONE_REGEX = /^(0[7-9][0-1]\d{8})$/;
